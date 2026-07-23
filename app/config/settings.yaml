@@ -1,0 +1,22 @@
+camera:
+  fps: 30
+  height: 480
+  index: 0
+  width: 640
+detector:
+  confidence_threshold: 0.5
+  device: cpu
+  model_name: yolov8n.pt
+devices:
+  ac:
+    empty_shutdown_timeout_sec: 600
+    enabled: true
+  fan:
+    empty_shutdown_timeout_sec: 600
+    enabled: true
+  light:
+    empty_shutdown_timeout_sec: 180
+    enabled: true
+occupancy:
+  empty_timeout_sec: 300
+  persistence_window_sec: 5
