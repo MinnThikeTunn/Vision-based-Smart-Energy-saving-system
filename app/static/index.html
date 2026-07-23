@@ -4,68 +4,117 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vision Smart Energy Saver Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <!-- FontAwesome & Tailwind -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
       rel="stylesheet"
     />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              heading: ['Outfit', 'sans-serif'],
+            },
+            borderRadius: {
+              '3xl': '32px',
+            },
+          },
+        },
+      }
+    </script>
+    <style>
+      body {
+        background-color: #0b0b0c;
+        color: #f4f4f5;
+        font-family: 'Inter', sans-serif;
+      }
+      h1, h2, h3, h4, .font-black-heading {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+      }
+      .gradient-border {
+        position: relative;
+        background: linear-gradient(to bottom, #18181b, #09090b);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .glass-panel {
+        background: rgba(24, 24, 27, 0.7);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      .micro-glow-green {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+      }
+      .micro-glow-amber {
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.1);
+      }
+      /* Smooth transitions and micro-animations */
+      .transition-all-300 {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .hover-scale:hover {
+        transform: translateY(-2px);
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+    </style>
   </head>
-  <body class="bg-slate-900 text-slate-100 font-sans min-h-screen">
-    <div class="max-w-7xl mx-auto px-4 py-6">
-      <!-- Header -->
-      <header
-        class="flex flex-col md:flex-row justify-between items-center pb-6 mb-6 border-b border-slate-800 gap-4"
-      >
-        <div>
-          <h1
-            class="text-2xl md:text-3xl font-bold text-emerald-400 flex items-center gap-3"
-          >
-            <i class="fa-solid fa-leaf"></i> Vision Smart Energy Saver
+  <body class="min-h-screen selection:bg-emerald-500/30 selection:text-emerald-200">
+    <div class="max-w-7xl mx-auto px-6 py-10 space-y-10">
+      
+      <!-- Top Header Area with generous whitespace -->
+      <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-zinc-800/60 pb-8">
+        <div class="space-y-2">
+          <h1 class="text-4xl text-white flex items-center gap-3">
+            <span class="bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
+              <i class="fa-solid fa-leaf"></i> Vision Smart Energy
+            </span>
           </h1>
-          <p class="text-slate-400 text-sm mt-1">
+          <p class="text-zinc-400 text-sm tracking-wide font-light">
             Real-Time AI Room Occupancy & Automated Device Energy Management
           </p>
         </div>
         <div class="flex items-center gap-4">
           <div
             id="connection-badge"
-            class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-2"
+            class="px-4 py-1.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20 flex items-center gap-2 transition-all-300"
           >
-            <span
-              class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"
-            ></span>
-            Connecting...
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+            Connecting Status...
           </div>
-          <span
-            class="text-xs text-slate-500 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700"
-            >Mode: Simulation</span
-          >
+          <span class="text-xs text-zinc-400 bg-zinc-900 px-4 py-2 rounded-full border border-zinc-800/80 font-medium">
+            Mode: Simulation
+          </span>
         </div>
       </header>
 
-      <!-- Main Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Left Column: Video Feed & Telemetry (2 Cols) -->
-        <div class="lg:col-span-2 space-y-6">
-          <!-- Live Video Feed Card -->
-          <div
-            class="bg-slate-800/80 rounded-xl border border-slate-700 overflow-hidden shadow-xl"
-          >
-            <div
-              class="px-4 py-3 bg-slate-800 border-b border-slate-700 flex justify-between items-center"
-            >
-              <h2 class="font-semibold text-slate-200 flex items-center gap-2">
-                <i class="fa-solid fa-video text-emerald-400"></i> Live Camera
-                Feed
+      <!-- Main Layout Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        
+        <!-- Left: Live Video Feed & Telemetry (2 Cols) -->
+        <div class="lg:col-span-2 space-y-10">
+          
+          <!-- Live Camera Feed (Large rounded-[32px] container) -->
+          <div class="gradient-border rounded-3xl overflow-hidden shadow-2xl transition-all-300 hover-scale">
+            <div class="px-6 py-4 bg-zinc-900/60 border-b border-zinc-800/60 flex justify-between items-center">
+              <h2 class="text-lg font-bold text-zinc-100 flex items-center gap-2.5">
+                <i class="fa-solid fa-video text-emerald-400"></i> Live Camera Feed
               </h2>
-              <span
-                class="text-xs text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded border border-slate-700"
-                >YOLOv8 Detection</span
-              >
+              <span class="text-xs font-semibold text-zinc-400 bg-zinc-950 px-3 py-1 rounded-full border border-zinc-800/80">
+                YOLOv8 Real-Time Detection
+              </span>
             </div>
-            <div
-              class="relative bg-black aspect-video flex items-center justify-center overflow-hidden"
-            >
+            <div class="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
               <img
                 id="video-stream"
                 src="/api/video_feed"
@@ -75,80 +124,81 @@
             </div>
           </div>
 
-          <!-- Telemetry Summary Cards -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
-              <div class="text-xs text-slate-400 font-medium">Occupants</div>
-              <div
-                id="stat-occupants"
-                class="text-2xl font-bold text-emerald-400 mt-1"
-              >
+          <!-- Telemetry Cards -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <!-- Card 1: Occupants -->
+            <div class="gradient-border p-6 rounded-3xl transition-all-300 hover-scale micro-glow-green">
+              <div class="text-xs text-zinc-500 font-semibold tracking-wider uppercase">Occupants</div>
+              <div id="stat-occupants" class="text-4xl font-black-heading text-emerald-400 mt-2">
                 0
               </div>
-              <div class="text-xs text-slate-500 mt-1">Live YOLO Count</div>
+              <div class="text-[10px] text-zinc-500 mt-1 font-medium">Live YOLO Count</div>
             </div>
-            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
-              <div class="text-xs text-slate-400 font-medium">Room Status</div>
-              <div
-                id="stat-status"
-                class="text-xl font-bold text-amber-400 mt-1"
-              >
+
+            <!-- Card 2: Room Status -->
+            <div class="gradient-border p-6 rounded-3xl transition-all-300 hover-scale micro-glow-amber">
+              <div class="text-xs text-zinc-500 font-semibold tracking-wider uppercase">Room Status</div>
+              <div id="stat-status" class="text-2xl font-black-heading text-amber-400 mt-3">
                 Empty
               </div>
-              <div class="text-xs text-slate-500 mt-1">Occupancy State</div>
+              <div class="text-[10px] text-zinc-500 mt-2 font-medium font-heading">Occupancy State</div>
             </div>
-            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
-              <div class="text-xs text-slate-400 font-medium">
-                Empty Duration
-              </div>
-              <div
-                id="stat-empty-dur"
-                class="text-xl font-bold text-sky-400 mt-1"
-              >
+
+            <!-- Card 3: Empty Duration -->
+            <div class="gradient-border p-6 rounded-3xl transition-all-300 hover-scale">
+              <div class="text-xs text-zinc-500 font-semibold tracking-wider uppercase">Empty Duration</div>
+              <div id="stat-empty-dur" class="text-2xl font-black-heading text-sky-400 mt-3">
                 0s
               </div>
-              <div class="text-xs text-slate-500 mt-1">Elapsed Zero Count</div>
+              <div class="text-[10px] text-zinc-500 mt-2 font-medium">Elapsed Zero Count</div>
             </div>
-            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
-              <div class="text-xs text-slate-400 font-medium">Countdown</div>
-              <div
-                id="stat-countdown"
-                class="text-xl font-bold text-purple-400 mt-1"
-              >
+
+            <!-- Card 4: Countdowns -->
+            <div class="gradient-border p-6 rounded-3xl transition-all-300 hover-scale">
+              <div class="text-xs text-zinc-500 font-semibold tracking-wider uppercase">Empty Countdown</div>
+              <div id="stat-countdown" class="text-2xl font-black-heading text-purple-400 mt-2">
                 180s
               </div>
-              <div class="text-xs text-slate-500 mt-1">Until Shutdown</div>
+              
+              <!-- Individual Device Shutdown Timers -->
+              <div class="mt-3 pt-2.5 border-t border-zinc-800/80 space-y-1 text-[10px] text-zinc-400 font-medium">
+                <div class="flex justify-between">
+                  <span>Light Off:</span>
+                  <span id="timer-light" class="text-emerald-400">180s</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>Fan Off:</span>
+                  <span id="timer-fan" class="text-sky-400">600s</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>AC Off:</span>
+                  <span id="timer-ac" class="text-cyan-400">600s</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Event Log Table -->
-          <div
-            class="bg-slate-800/80 rounded-xl border border-slate-700 overflow-hidden"
-          >
-            <div
-              class="px-4 py-3 bg-slate-800 border-b border-slate-700 flex justify-between items-center"
-            >
-              <h2 class="font-semibold text-slate-200 flex items-center gap-2">
-                <i class="fa-solid fa-list-check text-sky-400"></i> Event Audit
-                Log
+          <!-- Event Log Audit Table -->
+          <div class="gradient-border rounded-3xl overflow-hidden shadow-xl">
+            <div class="px-6 py-4 bg-zinc-900/60 border-b border-zinc-800/60 flex justify-between items-center">
+              <h2 class="text-lg font-bold text-zinc-100 flex items-center gap-2.5">
+                <i class="fa-solid fa-list-check text-sky-400"></i> Event Audit Log
               </h2>
-              <span class="text-xs text-slate-400"
-                >Recent Automation Commands</span
-              >
+              <span class="text-xs text-zinc-500 font-medium">Recent Automation Log</span>
             </div>
-            <div class="p-4 max-h-64 overflow-y-auto">
-              <table class="w-full text-left text-xs text-slate-300">
-                <thead class="text-slate-400 border-b border-slate-700">
+            <div class="p-6 max-h-72 overflow-y-auto">
+              <table class="w-full text-left text-xs text-zinc-300">
+                <thead class="text-zinc-500 font-semibold border-b border-zinc-800 pb-3">
                   <tr>
-                    <th class="pb-2">Time</th>
-                    <th class="pb-2">Device</th>
-                    <th class="pb-2">Action</th>
-                    <th class="pb-2">Reason</th>
+                    <th class="pb-3 uppercase tracking-wider">Time</th>
+                    <th class="pb-3 uppercase tracking-wider">Device</th>
+                    <th class="pb-3 uppercase tracking-wider">Action</th>
+                    <th class="pb-3 uppercase tracking-wider">Reason</th>
                   </tr>
                 </thead>
-                <tbody id="event-log-rows" class="divide-y divide-slate-700/50">
+                <tbody id="event-log-rows" class="divide-y divide-zinc-800/40">
                   <tr>
-                    <td colspan="4" class="py-4 text-center text-slate-500">
+                    <td colspan="4" class="py-6 text-center text-zinc-600 font-medium">
                       No events recorded yet.
                     </td>
                   </tr>
@@ -158,92 +208,73 @@
           </div>
         </div>
 
-        <!-- Right Column: Device Controls & System Settings (1 Col) -->
-        <div class="space-y-6">
-          <!-- Virtual Device Control Cards -->
-          <div class="bg-slate-800/80 rounded-xl border border-slate-700 p-5">
-            <h2
-              class="font-semibold text-slate-200 mb-4 flex items-center gap-2"
-            >
-              <i class="fa-solid fa-plug text-amber-400"></i> Virtual Device
-              Controls
+        <!-- Right Side: Device Controls & System Settings (1 Col) -->
+        <div class="space-y-10">
+          
+          <!-- Virtual Device Controls Card -->
+          <div class="gradient-border rounded-3xl p-6 shadow-xl space-y-6">
+            <h2 class="text-lg font-bold text-zinc-100 flex items-center gap-2.5">
+              <i class="fa-solid fa-plug text-amber-400"></i> Virtual Devices
             </h2>
             <div class="space-y-4">
-              <!-- Light -->
-              <div
-                class="flex items-center justify-between p-3 bg-slate-900/60 rounded-lg border border-slate-700/80"
-              >
+              <!-- Light Device Box -->
+              <div class="flex items-center justify-between p-4 bg-zinc-950/40 rounded-2xl border border-zinc-800/50 hover:border-zinc-800 transition-all-300">
                 <div class="flex items-center gap-3">
-                  <div class="p-2 bg-amber-500/10 rounded-lg text-amber-400">
-                    <i class="fa-solid fa-lightbulb text-lg"></i>
+                  <div id="device-icon-light" class="p-3 bg-amber-500/10 rounded-xl text-amber-400 transition-all-300">
+                    <i class="fa-solid fa-lightbulb text-xl"></i>
                   </div>
                   <div>
-                    <div class="font-medium text-sm text-slate-200">Light</div>
-                    <div
-                      id="device-badge-light"
-                      class="text-xs text-slate-500 font-semibold"
-                    >
+                    <div class="font-bold text-sm text-zinc-200">Light</div>
+                    <div id="device-badge-light" class="text-xs text-zinc-500 font-medium transition-all-300">
                       State: OFF
                     </div>
                   </div>
                 </div>
                 <button
                   onclick="toggleDevice('light')"
-                  class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-md transition"
+                  class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold rounded-xl text-zinc-200 hover:text-white transition-all-300"
                 >
                   Toggle
                 </button>
               </div>
 
-              <!-- Fan -->
-              <div
-                class="flex items-center justify-between p-3 bg-slate-900/60 rounded-lg border border-slate-700/80"
-              >
+              <!-- Fan Device Box -->
+              <div class="flex items-center justify-between p-4 bg-zinc-950/40 rounded-2xl border border-zinc-800/50 hover:border-zinc-800 transition-all-300">
                 <div class="flex items-center gap-3">
-                  <div class="p-2 bg-sky-500/10 rounded-lg text-sky-400">
-                    <i class="fa-solid fa-fan text-lg"></i>
+                  <div id="device-icon-fan" class="p-3 bg-sky-500/10 rounded-xl text-sky-400 transition-all-300">
+                    <i class="fa-solid fa-fan text-xl animate-spin-slow"></i>
                   </div>
                   <div>
-                    <div class="font-medium text-sm text-slate-200">Fan</div>
-                    <div
-                      id="device-badge-fan"
-                      class="text-xs text-slate-500 font-semibold"
-                    >
+                    <div class="font-bold text-sm text-zinc-200">Fan</div>
+                    <div id="device-badge-fan" class="text-xs text-zinc-500 font-medium transition-all-300">
                       State: OFF
                     </div>
                   </div>
                 </div>
                 <button
                   onclick="toggleDevice('fan')"
-                  class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-md transition"
+                  class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold rounded-xl text-zinc-200 hover:text-white transition-all-300"
                 >
                   Toggle
                 </button>
               </div>
 
-              <!-- AC -->
-              <div
-                class="flex items-center justify-between p-3 bg-slate-900/60 rounded-lg border border-slate-700/80"
-              >
+              <!-- AC Device Box -->
+              <div class="flex items-center justify-between p-4 bg-zinc-950/40 rounded-2xl border border-zinc-800/50 hover:border-zinc-800 transition-all-300">
                 <div class="flex items-center gap-3">
-                  <div class="p-2 bg-cyan-500/10 rounded-lg text-cyan-400">
-                    <i class="fa-solid fa-snowflake text-lg"></i>
+                  <div id="device-icon-ac" class="p-3 bg-cyan-500/10 rounded-xl text-cyan-400 transition-all-300">
+                    <i class="fa-solid fa-snowflake text-xl"></i>
                   </div>
                   <div>
-                    <div class="font-medium text-sm text-slate-200">
-                      Air Conditioner
-                    </div>
-                    <div
-                      id="device-badge-ac"
-                      class="text-xs text-slate-500 font-semibold"
-                    >
+                    <div class="font-bold text-sm text-zinc-200">Air Conditioner</div>
+                    <div id="device-badge-ac" class="text-xs text-zinc-500 font-medium transition-all-300">
                       State: OFF
                     </div>
                   </div>
                 </div>
                 <button
                   onclick="toggleDevice('ac')"
-                  class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-md transition"
+                  class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold rounded-xl text-zinc-200 hover:text-white transition-all-300"
                 >
                   Toggle
                 </button>
@@ -251,55 +282,77 @@
             </div>
           </div>
 
-          <!-- Configuration Settings -->
-          <div class="bg-slate-800/80 rounded-xl border border-slate-700 p-5">
-            <h2
-              class="font-semibold text-slate-200 mb-4 flex items-center gap-2"
-            >
-              <i class="fa-solid fa-sliders text-emerald-400"></i> Settings &
-              Rules
+          <!-- Configuration Settings Card -->
+          <div class="gradient-border rounded-3xl p-6 shadow-xl space-y-6">
+            <h2 class="text-lg font-bold text-zinc-100 flex items-center gap-2.5">
+              <i class="fa-solid fa-sliders text-emerald-400"></i> Settings & Rules
             </h2>
-            <form
-              id="config-form"
-              onsubmit="saveConfig(event)"
-              class="space-y-3 text-xs"
-            >
-              <div>
-                <label class="block text-slate-400 mb-1"
-                  >Persistence Window (sec)</label
-                >
-                <input
-                  type="number"
-                  id="cfg-persistence"
-                  class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 focus:outline-none focus:border-emerald-500"
-                />
+            <form id="config-form" onsubmit="saveConfig(event)" class="space-y-4 text-xs">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-zinc-500 font-semibold uppercase tracking-wider mb-1.5">Persistence Window (s)</label>
+                  <input
+                    type="number"
+                    id="cfg-persistence"
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-emerald-500 transition-all-300"
+                  />
+                </div>
+                <div>
+                  <label class="block text-zinc-500 font-semibold uppercase tracking-wider mb-1.5">Empty Timeout (s)</label>
+                  <input
+                    type="number"
+                    id="cfg-empty-timeout"
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-emerald-500 transition-all-300"
+                  />
+                </div>
               </div>
+              
               <div>
-                <label class="block text-slate-400 mb-1"
-                  >Empty Timeout (sec)</label
-                >
-                <input
-                  type="number"
-                  id="cfg-empty-timeout"
-                  class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-              <div>
-                <label class="block text-slate-400 mb-1"
-                  >YOLO Confidence Threshold</label
-                >
+                <label class="block text-zinc-500 font-semibold uppercase tracking-wider mb-1.5">YOLO Confidence Threshold</label>
                 <input
                   type="number"
                   step="0.05"
                   min="0.1"
                   max="1.0"
                   id="cfg-conf"
-                  class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 focus:outline-none focus:border-emerald-500"
+                  class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-emerald-500 transition-all-300"
                 />
               </div>
+
+              <div class="border-t border-zinc-800/80 my-4 pt-4 space-y-4">
+                <span class="block text-zinc-400 font-bold tracking-wide text-xs">Device Shutdown Timeouts</span>
+                
+                <div>
+                  <label class="block text-zinc-500 font-semibold uppercase tracking-wider mb-1.5">Light Shutdown Timeout (s)</label>
+                  <input
+                    type="number"
+                    id="cfg-light-timeout"
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-emerald-500 transition-all-300"
+                  />
+                </div>
+                
+                <div>
+                  <label class="block text-zinc-500 font-semibold uppercase tracking-wider mb-1.5">Fan Shutdown Timeout (s)</label>
+                  <input
+                    type="number"
+                    id="cfg-fan-timeout"
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-emerald-500 transition-all-300"
+                  />
+                </div>
+
+                <div>
+                  <label class="block text-zinc-500 font-semibold uppercase tracking-wider mb-1.5">AC Shutdown Timeout (s)</label>
+                  <input
+                    type="number"
+                    id="cfg-ac-timeout"
+                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-emerald-500 transition-all-300"
+                  />
+                </div>
+              </div>
+
               <button
                 type="submit"
-                class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-md transition mt-2"
+                class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all-300 shadow-lg shadow-emerald-900/10 hover:shadow-emerald-900/30"
               >
                 Save Settings
               </button>
@@ -321,8 +374,8 @@
         ws.onopen = () => {
           const badge = document.getElementById("connection-badge");
           badge.className =
-            "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-2";
-          badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Connected`;
+            "px-4 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 flex items-center gap-2";
+          badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Connected`;
         };
 
         ws.onmessage = (event) => {
@@ -333,8 +386,8 @@
         ws.onclose = () => {
           const badge = document.getElementById("connection-badge");
           badge.className =
-            "px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-2";
-          badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-400"></span> Disconnected`;
+            "px-4 py-1.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/20 flex items-center gap-2";
+          badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span> Disconnected`;
           setTimeout(connectWebSocket, 3000);
         };
       }
@@ -347,24 +400,57 @@
         statusElem.innerText = data.occupancy_status;
         statusElem.className =
           data.occupancy_status === "Occupied"
-            ? "text-xl font-bold text-emerald-400 mt-1"
-            : "text-xl font-bold text-amber-400 mt-1";
+            ? "text-2xl font-black-heading text-emerald-400 mt-3"
+            : "text-2xl font-black-heading text-amber-400 mt-3";
 
         document.getElementById("stat-empty-dur").innerText =
           `${data.empty_duration_sec}s`;
         document.getElementById("stat-countdown").innerText =
           `${data.seconds_until_empty}s`;
 
+        // Update individual device countdowns
+        if (data.device_countdowns) {
+          if (data.device_countdowns.light !== undefined) {
+            document.getElementById("timer-light").innerText = `${data.device_countdowns.light}s`;
+          }
+          if (data.device_countdowns.fan !== undefined) {
+            document.getElementById("timer-fan").innerText = `${data.device_countdowns.fan}s`;
+          }
+          if (data.device_countdowns.ac !== undefined) {
+            document.getElementById("timer-ac").innerText = `${data.device_countdowns.ac}s`;
+          }
+        }
+
+        // Update Device states and badging/icons
         if (data.device_states) {
           currentDeviceStates = data.device_states;
           for (const [dev, state] of Object.entries(data.device_states)) {
             const badge = document.getElementById(`device-badge-${dev}`);
+            const iconBox = document.getElementById(`device-icon-${dev}`);
             if (badge) {
               badge.innerText = `State: ${state}`;
-              badge.className =
-                state === "ON"
-                  ? "text-xs text-emerald-400 font-semibold"
-                  : "text-xs text-slate-500 font-semibold";
+              if (state === "ON") {
+                badge.className = "text-xs text-emerald-400 font-semibold";
+                if (dev === "light") {
+                  iconBox.className = "p-3 bg-amber-500/20 rounded-xl text-amber-300 shadow-md shadow-amber-500/10";
+                } else if (dev === "fan") {
+                  iconBox.className = "p-3 bg-sky-500/20 rounded-xl text-sky-300 shadow-md shadow-sky-500/10";
+                  // Make fan icon spin faster when ON
+                  iconBox.querySelector('i').className = "fa-solid fa-fan text-xl animate-spin";
+                } else if (dev === "ac") {
+                  iconBox.className = "p-3 bg-cyan-500/20 rounded-xl text-cyan-300 shadow-md shadow-cyan-500/10";
+                }
+              } else {
+                badge.className = "text-xs text-zinc-500 font-medium";
+                if (dev === "light") {
+                  iconBox.className = "p-3 bg-zinc-800/40 rounded-xl text-zinc-600 border border-zinc-800/40";
+                } else if (dev === "fan") {
+                  iconBox.className = "p-3 bg-zinc-800/40 rounded-xl text-zinc-600 border border-zinc-800/40";
+                  iconBox.querySelector('i').className = "fa-solid fa-fan text-xl";
+                } else if (dev === "ac") {
+                  iconBox.className = "p-3 bg-zinc-800/40 rounded-xl text-zinc-600 border border-zinc-800/40";
+                }
+              }
             }
           }
         }
@@ -378,18 +464,18 @@
         const tbody = document.getElementById("event-log-rows");
         if (!logs || logs.length === 0) {
           tbody.innerHTML =
-            '<tr><td colspan="4" class="py-4 text-center text-slate-500">No events recorded yet.</td></tr>';
+            '<tr><td colspan="4" class="py-6 text-center text-zinc-600 font-medium">No events recorded yet.</td></tr>';
           return;
         }
 
         tbody.innerHTML = logs
           .map(
             (log) => `
-        <tr class="hover:bg-slate-700/30 transition">
-          <td class="py-2 text-slate-400">${new Date(log.timestamp).toLocaleTimeString()}</td>
-          <td class="py-2 font-medium capitalize text-slate-200">${log.device_id}</td>
-          <td class="py-2 font-bold ${log.action === "ON" ? "text-emerald-400" : "text-rose-400"}">${log.action}</td>
-          <td class="py-2 text-slate-400">${log.reason}</td>
+        <tr class="hover:bg-zinc-800/20 transition-all-300">
+          <td class="py-3 text-zinc-500 font-mono">${new Date(log.timestamp).toLocaleTimeString()}</td>
+          <td class="py-3 font-semibold capitalize text-zinc-200">${log.device_id}</td>
+          <td class="py-3 font-bold ${log.action === "ON" ? "text-emerald-400" : "text-rose-400"}">${log.action}</td>
+          <td class="py-3 text-zinc-400 font-light">${log.reason}</td>
         </tr>
       `,
           )
@@ -419,6 +505,22 @@
               cfg.occupancy.empty_timeout_sec;
             document.getElementById("cfg-conf").value =
               cfg.detector.confidence_threshold;
+            
+            // Populate individual device timeouts
+            if (cfg.devices) {
+              if (cfg.devices.light) {
+                document.getElementById("cfg-light-timeout").value =
+                  cfg.devices.light.empty_shutdown_timeout_sec;
+              }
+              if (cfg.devices.fan) {
+                document.getElementById("cfg-fan-timeout").value =
+                  cfg.devices.fan.empty_shutdown_timeout_sec;
+              }
+              if (cfg.devices.ac) {
+                document.getElementById("cfg-ac-timeout").value =
+                  cfg.devices.ac.empty_shutdown_timeout_sec;
+              }
+            }
           }
         } catch (e) {}
       }
@@ -439,6 +541,17 @@
             document.getElementById("cfg-conf").value,
           );
 
+          // Get device timeouts
+          cfg.devices.light.empty_shutdown_timeout_sec = parseInt(
+            document.getElementById("cfg-light-timeout").value,
+          );
+          cfg.devices.fan.empty_shutdown_timeout_sec = parseInt(
+            document.getElementById("cfg-fan-timeout").value,
+          );
+          cfg.devices.ac.empty_shutdown_timeout_sec = parseInt(
+            document.getElementById("cfg-ac-timeout").value,
+          );
+
           const postRes = await fetch("/api/config", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -447,6 +560,7 @@
 
           if (postRes.ok) {
             alert("Settings updated successfully!");
+            loadConfig();
           }
         } catch (err) {
           alert("Failed to update settings: " + err);

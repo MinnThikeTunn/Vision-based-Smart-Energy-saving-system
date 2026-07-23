@@ -5,7 +5,7 @@ import json
 import time
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.decision_engine.device_matrix import DeviceControlMatrix
-from app.decision_engine.state_machine import OccupancyStateMachine
+from app.decision_engine.state_machine import OccupancyStateMachine, RoomState
 from app.detector.pipeline import VisionPipeline
 from app.device_controller.base import BaseDeviceController
 from app.device_controller.simulation import SimulationController
@@ -45,6 +45,23 @@ def get_device_controller() -> BaseDeviceController:
 
 
 def build_telemetry_payload(pipeline: VisionPipeline | None = None) -> dict[str, Any]:
+    from app.config.loader import load_settings
+    try:
+        settings = load_settings()
+        # Dynamically sync state machine parameters
+        _state_machine.persistence_window_sec = settings.occupancy.persistence_window_sec
+        _state_machine.empty_timeout_sec = settings.occupancy.empty_timeout_sec
+
+        # Dynamically sync device matrix timeouts
+        device_timeouts = {}
+        for device_name, rule in settings.devices.items():
+            if rule.enabled:
+                device_timeouts[device_name] = rule.empty_shutdown_timeout_sec
+        _device_matrix.device_timeouts = device_timeouts
+    except Exception as e:
+        # Fallback if config loading fails
+        print(f"Error updating config in telemetry payload: {e}")
+
     raw_count = 0
     if pipeline is not None:
         _, raw_count = pipeline.get_latest_processed()
@@ -68,12 +85,29 @@ def build_telemetry_payload(pipeline: VisionPipeline | None = None) -> dict[str,
             reason=action["reason"],
         )
 
+    device_countdowns = {}
+    try:
+        for device_id, rule in settings.devices.items():
+            if not rule.enabled:
+                device_countdowns[device_id] = 0.0
+            elif snapshot.state == RoomState.OCCUPIED:
+                device_countdowns[device_id] = rule.empty_shutdown_timeout_sec
+            else:
+                current_state = current_states.get(device_id, "OFF").upper()
+                if current_state == "OFF":
+                    device_countdowns[device_id] = 0.0
+                else:
+                    device_countdowns[device_id] = max(0.0, round(rule.empty_shutdown_timeout_sec - snapshot.empty_duration_sec, 1))
+    except Exception as ex:
+        print(f"Error calculating device countdowns: {ex}")
+
     return {
         "occupant_count": snapshot.occupant_count,
         "occupancy_status": snapshot.state.value,
         "empty_duration_sec": round(snapshot.empty_duration_sec, 1),
         "seconds_until_empty": round(snapshot.seconds_until_empty, 1),
         "device_states": _device_controller.get_device_states(),
+        "device_countdowns": device_countdowns,
         "event_logs": _device_controller.get_event_logs(limit=20),
     }
 
@@ -81,6 +115,7 @@ def build_telemetry_payload(pipeline: VisionPipeline | None = None) -> dict[str,
 @router.websocket("/ws/status")
 async def websocket_status(websocket: WebSocket) -> None:
     await manager.connect(websocket)
+    from app.api.video_router import get_vision_pipeline
     try:
         while True:
             # Check for incoming client messages with timeout
@@ -100,7 +135,7 @@ async def websocket_status(websocket: WebSocket) -> None:
                 pass
 
             # Push telemetry snapshot
-            telemetry = build_telemetry_payload()
+            telemetry = build_telemetry_payload(get_vision_pipeline())
             await websocket.send_json(telemetry)
     except WebSocketDisconnect:
         manager.disconnect(websocket)

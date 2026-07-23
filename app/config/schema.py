@@ -17,12 +17,12 @@ class DetectorConfig(BaseModel):
 
 class OccupancyConfig(BaseModel):
     persistence_window_sec: int = Field(default=5, ge=0)
-    empty_timeout_sec: int = Field(default=180, ge=0)
+    empty_timeout_sec: int = Field(default=15, ge=0)
 
 
 class DeviceRuleConfig(BaseModel):
     enabled: bool = Field(default=True)
-    empty_shutdown_timeout_sec: int = Field(default=180, ge=0)
+    empty_shutdown_timeout_sec: int = Field(default=15, ge=0)
 
 
 class SystemConfiguration(BaseModel):
@@ -31,8 +31,8 @@ class SystemConfiguration(BaseModel):
     occupancy: OccupancyConfig = Field(default_factory=OccupancyConfig)
     devices: Dict[str, DeviceRuleConfig] = Field(
         default_factory=lambda: {
-            "light": DeviceRuleConfig(empty_shutdown_timeout_sec=180),
-            "fan": DeviceRuleConfig(empty_shutdown_timeout_sec=600),
-            "ac": DeviceRuleConfig(empty_shutdown_timeout_sec=600),
+            "light": DeviceRuleConfig(empty_shutdown_timeout_sec=15),
+            "fan": DeviceRuleConfig(empty_shutdown_timeout_sec=25),
+            "ac": DeviceRuleConfig(empty_shutdown_timeout_sec=25),
         }
     )
