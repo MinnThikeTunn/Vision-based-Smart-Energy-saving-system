@@ -16,7 +16,9 @@ class OccupancySnapshot:
 
 
 class OccupancyStateMachine:
-    def __init__(self, persistence_window_sec: float = 5.0, empty_timeout_sec: float = 180.0):
+    def __init__(
+        self, persistence_window_sec: float = 5.0, empty_timeout_sec: float = 180.0
+    ):
         self.persistence_window_sec = persistence_window_sec
         self.empty_timeout_sec = empty_timeout_sec
 

@@ -1,308 +1,460 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vision Smart Energy Saver Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-</head>
-<body class="bg-slate-900 text-slate-100 font-sans min-h-screen">
-  <div class="max-w-7xl mx-auto px-4 py-6">
-    <!-- Header -->
-    <header class="flex flex-col md:flex-row justify-between items-center pb-6 mb-6 border-b border-slate-800 gap-4">
-      <div>
-        <h1 class="text-2xl md:text-3xl font-bold text-emerald-400 flex items-center gap-3">
-          <i class="fa-solid fa-leaf"></i> Vision Smart Energy Saver
-        </h1>
-        <p class="text-slate-400 text-sm mt-1">Real-Time AI Room Occupancy & Automated Device Energy Management</p>
-      </div>
-      <div class="flex items-center gap-4">
-        <div id="connection-badge" class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Connecting...
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vision Smart Energy Saver Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-slate-900 text-slate-100 font-sans min-h-screen">
+    <div class="max-w-7xl mx-auto px-4 py-6">
+      <!-- Header -->
+      <header
+        class="flex flex-col md:flex-row justify-between items-center pb-6 mb-6 border-b border-slate-800 gap-4"
+      >
+        <div>
+          <h1
+            class="text-2xl md:text-3xl font-bold text-emerald-400 flex items-center gap-3"
+          >
+            <i class="fa-solid fa-leaf"></i> Vision Smart Energy Saver
+          </h1>
+          <p class="text-slate-400 text-sm mt-1">
+            Real-Time AI Room Occupancy & Automated Device Energy Management
+          </p>
         </div>
-        <span class="text-xs text-slate-500 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">Mode: Simulation</span>
-      </div>
-    </header>
+        <div class="flex items-center gap-4">
+          <div
+            id="connection-badge"
+            class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-2"
+          >
+            <span
+              class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"
+            ></span>
+            Connecting...
+          </div>
+          <span
+            class="text-xs text-slate-500 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700"
+            >Mode: Simulation</span
+          >
+        </div>
+      </header>
 
-    <!-- Main Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      
-      <!-- Left Column: Video Feed & Telemetry (2 Cols) -->
-      <div class="lg:col-span-2 space-y-6">
-        <!-- Live Video Feed Card -->
-        <div class="bg-slate-800/80 rounded-xl border border-slate-700 overflow-hidden shadow-xl">
-          <div class="px-4 py-3 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
-            <h2 class="font-semibold text-slate-200 flex items-center gap-2">
-              <i class="fa-solid fa-video text-emerald-400"></i> Live Camera Feed
+      <!-- Main Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column: Video Feed & Telemetry (2 Cols) -->
+        <div class="lg:col-span-2 space-y-6">
+          <!-- Live Video Feed Card -->
+          <div
+            class="bg-slate-800/80 rounded-xl border border-slate-700 overflow-hidden shadow-xl"
+          >
+            <div
+              class="px-4 py-3 bg-slate-800 border-b border-slate-700 flex justify-between items-center"
+            >
+              <h2 class="font-semibold text-slate-200 flex items-center gap-2">
+                <i class="fa-solid fa-video text-emerald-400"></i> Live Camera
+                Feed
+              </h2>
+              <span
+                class="text-xs text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded border border-slate-700"
+                >YOLOv8 Detection</span
+              >
+            </div>
+            <div
+              class="relative bg-black aspect-video flex items-center justify-center overflow-hidden"
+            >
+              <img
+                id="video-stream"
+                src="/api/video_feed"
+                alt="Camera Stream"
+                class="w-full h-full object-contain"
+              />
+            </div>
+          </div>
+
+          <!-- Telemetry Summary Cards -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
+              <div class="text-xs text-slate-400 font-medium">Occupants</div>
+              <div
+                id="stat-occupants"
+                class="text-2xl font-bold text-emerald-400 mt-1"
+              >
+                0
+              </div>
+              <div class="text-xs text-slate-500 mt-1">Live YOLO Count</div>
+            </div>
+            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
+              <div class="text-xs text-slate-400 font-medium">Room Status</div>
+              <div
+                id="stat-status"
+                class="text-xl font-bold text-amber-400 mt-1"
+              >
+                Empty
+              </div>
+              <div class="text-xs text-slate-500 mt-1">Occupancy State</div>
+            </div>
+            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
+              <div class="text-xs text-slate-400 font-medium">
+                Empty Duration
+              </div>
+              <div
+                id="stat-empty-dur"
+                class="text-xl font-bold text-sky-400 mt-1"
+              >
+                0s
+              </div>
+              <div class="text-xs text-slate-500 mt-1">Elapsed Zero Count</div>
+            </div>
+            <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
+              <div class="text-xs text-slate-400 font-medium">Countdown</div>
+              <div
+                id="stat-countdown"
+                class="text-xl font-bold text-purple-400 mt-1"
+              >
+                180s
+              </div>
+              <div class="text-xs text-slate-500 mt-1">Until Shutdown</div>
+            </div>
+          </div>
+
+          <!-- Event Log Table -->
+          <div
+            class="bg-slate-800/80 rounded-xl border border-slate-700 overflow-hidden"
+          >
+            <div
+              class="px-4 py-3 bg-slate-800 border-b border-slate-700 flex justify-between items-center"
+            >
+              <h2 class="font-semibold text-slate-200 flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-sky-400"></i> Event Audit
+                Log
+              </h2>
+              <span class="text-xs text-slate-400"
+                >Recent Automation Commands</span
+              >
+            </div>
+            <div class="p-4 max-h-64 overflow-y-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="text-slate-400 border-b border-slate-700">
+                  <tr>
+                    <th class="pb-2">Time</th>
+                    <th class="pb-2">Device</th>
+                    <th class="pb-2">Action</th>
+                    <th class="pb-2">Reason</th>
+                  </tr>
+                </thead>
+                <tbody id="event-log-rows" class="divide-y divide-slate-700/50">
+                  <tr>
+                    <td colspan="4" class="py-4 text-center text-slate-500">
+                      No events recorded yet.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Device Controls & System Settings (1 Col) -->
+        <div class="space-y-6">
+          <!-- Virtual Device Control Cards -->
+          <div class="bg-slate-800/80 rounded-xl border border-slate-700 p-5">
+            <h2
+              class="font-semibold text-slate-200 mb-4 flex items-center gap-2"
+            >
+              <i class="fa-solid fa-plug text-amber-400"></i> Virtual Device
+              Controls
             </h2>
-            <span class="text-xs text-slate-400 bg-slate-900/60 px-2.5 py-1 rounded border border-slate-700">YOLOv8 Detection</span>
-          </div>
-          <div class="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
-            <img id="video-stream" src="/api/video_feed" alt="Camera Stream" class="w-full h-full object-contain" />
-          </div>
-        </div>
+            <div class="space-y-4">
+              <!-- Light -->
+              <div
+                class="flex items-center justify-between p-3 bg-slate-900/60 rounded-lg border border-slate-700/80"
+              >
+                <div class="flex items-center gap-3">
+                  <div class="p-2 bg-amber-500/10 rounded-lg text-amber-400">
+                    <i class="fa-solid fa-lightbulb text-lg"></i>
+                  </div>
+                  <div>
+                    <div class="font-medium text-sm text-slate-200">Light</div>
+                    <div
+                      id="device-badge-light"
+                      class="text-xs text-slate-500 font-semibold"
+                    >
+                      State: OFF
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onclick="toggleDevice('light')"
+                  class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-md transition"
+                >
+                  Toggle
+                </button>
+              </div>
 
-        <!-- Telemetry Summary Cards -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
-            <div class="text-xs text-slate-400 font-medium">Occupants</div>
-            <div id="stat-occupants" class="text-2xl font-bold text-emerald-400 mt-1">0</div>
-            <div class="text-xs text-slate-500 mt-1">Live YOLO Count</div>
-          </div>
-          <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
-            <div class="text-xs text-slate-400 font-medium">Room Status</div>
-            <div id="stat-status" class="text-xl font-bold text-amber-400 mt-1">Empty</div>
-            <div class="text-xs text-slate-500 mt-1">Occupancy State</div>
-          </div>
-          <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
-            <div class="text-xs text-slate-400 font-medium">Empty Duration</div>
-            <div id="stat-empty-dur" class="text-xl font-bold text-sky-400 mt-1">0s</div>
-            <div class="text-xs text-slate-500 mt-1">Elapsed Zero Count</div>
-          </div>
-          <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700">
-            <div class="text-xs text-slate-400 font-medium">Countdown</div>
-            <div id="stat-countdown" class="text-xl font-bold text-purple-400 mt-1">180s</div>
-            <div class="text-xs text-slate-500 mt-1">Until Shutdown</div>
-          </div>
-        </div>
+              <!-- Fan -->
+              <div
+                class="flex items-center justify-between p-3 bg-slate-900/60 rounded-lg border border-slate-700/80"
+              >
+                <div class="flex items-center gap-3">
+                  <div class="p-2 bg-sky-500/10 rounded-lg text-sky-400">
+                    <i class="fa-solid fa-fan text-lg"></i>
+                  </div>
+                  <div>
+                    <div class="font-medium text-sm text-slate-200">Fan</div>
+                    <div
+                      id="device-badge-fan"
+                      class="text-xs text-slate-500 font-semibold"
+                    >
+                      State: OFF
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onclick="toggleDevice('fan')"
+                  class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-md transition"
+                >
+                  Toggle
+                </button>
+              </div>
 
-        <!-- Event Log Table -->
-        <div class="bg-slate-800/80 rounded-xl border border-slate-700 overflow-hidden">
-          <div class="px-4 py-3 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
-            <h2 class="font-semibold text-slate-200 flex items-center gap-2">
-              <i class="fa-solid fa-list-check text-sky-400"></i> Event Audit Log
+              <!-- AC -->
+              <div
+                class="flex items-center justify-between p-3 bg-slate-900/60 rounded-lg border border-slate-700/80"
+              >
+                <div class="flex items-center gap-3">
+                  <div class="p-2 bg-cyan-500/10 rounded-lg text-cyan-400">
+                    <i class="fa-solid fa-snowflake text-lg"></i>
+                  </div>
+                  <div>
+                    <div class="font-medium text-sm text-slate-200">
+                      Air Conditioner
+                    </div>
+                    <div
+                      id="device-badge-ac"
+                      class="text-xs text-slate-500 font-semibold"
+                    >
+                      State: OFF
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onclick="toggleDevice('ac')"
+                  class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-md transition"
+                >
+                  Toggle
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Configuration Settings -->
+          <div class="bg-slate-800/80 rounded-xl border border-slate-700 p-5">
+            <h2
+              class="font-semibold text-slate-200 mb-4 flex items-center gap-2"
+            >
+              <i class="fa-solid fa-sliders text-emerald-400"></i> Settings &
+              Rules
             </h2>
-            <span class="text-xs text-slate-400">Recent Automation Commands</span>
-          </div>
-          <div class="p-4 max-h-64 overflow-y-auto">
-            <table class="w-full text-left text-xs text-slate-300">
-              <thead class="text-slate-400 border-b border-slate-700">
-                <tr>
-                  <th class="pb-2">Time</th>
-                  <th class="pb-2">Device</th>
-                  <th class="pb-2">Action</th>
-                  <th class="pb-2">Reason</th>
-                </tr>
-              </thead>
-              <tbody id="event-log-rows" class="divide-y divide-slate-700/50">
-                <tr>
-                  <td colspan="4" class="py-4 text-center text-slate-500">No events recorded yet.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Column: Device Controls & System Settings (1 Col) -->
-      <div class="space-y-6">
-        <!-- Virtual Device Control Cards -->
-        <div class="bg-slate-800/80 rounded-xl border border-slate-700 p-5">
-          <h2 class="font-semibold text-slate-200 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-plug text-amber-400"></i> Virtual Device Controls
-          </h2>
-          <div class="space-y-4">
-            <!-- Light -->
-            <div class="flex items-center justify-between p-3 bg-slate-900/60 rounded-lg border border-slate-700/80">
-              <div class="flex items-center gap-3">
-                <div class="p-2 bg-amber-500/10 rounded-lg text-amber-400">
-                  <i class="fa-solid fa-lightbulb text-lg"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-slate-200">Light</div>
-                  <div id="device-badge-light" class="text-xs text-slate-500 font-semibold">State: OFF</div>
-                </div>
+            <form
+              id="config-form"
+              onsubmit="saveConfig(event)"
+              class="space-y-3 text-xs"
+            >
+              <div>
+                <label class="block text-slate-400 mb-1"
+                  >Persistence Window (sec)</label
+                >
+                <input
+                  type="number"
+                  id="cfg-persistence"
+                  class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 focus:outline-none focus:border-emerald-500"
+                />
               </div>
-              <button onclick="toggleDevice('light')" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-md transition">
-                Toggle
-              </button>
-            </div>
-
-            <!-- Fan -->
-            <div class="flex items-center justify-between p-3 bg-slate-900/60 rounded-lg border border-slate-700/80">
-              <div class="flex items-center gap-3">
-                <div class="p-2 bg-sky-500/10 rounded-lg text-sky-400">
-                  <i class="fa-solid fa-fan text-lg"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-slate-200">Fan</div>
-                  <div id="device-badge-fan" class="text-xs text-slate-500 font-semibold">State: OFF</div>
-                </div>
+              <div>
+                <label class="block text-slate-400 mb-1"
+                  >Empty Timeout (sec)</label
+                >
+                <input
+                  type="number"
+                  id="cfg-empty-timeout"
+                  class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 focus:outline-none focus:border-emerald-500"
+                />
               </div>
-              <button onclick="toggleDevice('fan')" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-md transition">
-                Toggle
-              </button>
-            </div>
-
-            <!-- AC -->
-            <div class="flex items-center justify-between p-3 bg-slate-900/60 rounded-lg border border-slate-700/80">
-              <div class="flex items-center gap-3">
-                <div class="p-2 bg-cyan-500/10 rounded-lg text-cyan-400">
-                  <i class="fa-solid fa-snowflake text-lg"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-slate-200">Air Conditioner</div>
-                  <div id="device-badge-ac" class="text-xs text-slate-500 font-semibold">State: OFF</div>
-                </div>
+              <div>
+                <label class="block text-slate-400 mb-1"
+                  >YOLO Confidence Threshold</label
+                >
+                <input
+                  type="number"
+                  step="0.05"
+                  min="0.1"
+                  max="1.0"
+                  id="cfg-conf"
+                  class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 focus:outline-none focus:border-emerald-500"
+                />
               </div>
-              <button onclick="toggleDevice('ac')" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-md transition">
-                Toggle
+              <button
+                type="submit"
+                class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-md transition mt-2"
+              >
+                Save Settings
               </button>
-            </div>
+            </form>
           </div>
-        </div>
-
-        <!-- Configuration Settings -->
-        <div class="bg-slate-800/80 rounded-xl border border-slate-700 p-5">
-          <h2 class="font-semibold text-slate-200 mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-sliders text-emerald-400"></i> Settings & Rules
-          </h2>
-          <form id="config-form" onsubmit="saveConfig(event)" class="space-y-3 text-xs">
-            <div>
-              <label class="block text-slate-400 mb-1">Persistence Window (sec)</label>
-              <input type="number" id="cfg-persistence" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 focus:outline-none focus:border-emerald-500" />
-            </div>
-            <div>
-              <label class="block text-slate-400 mb-1">Empty Timeout (sec)</label>
-              <input type="number" id="cfg-empty-timeout" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 focus:outline-none focus:border-emerald-500" />
-            </div>
-            <div>
-              <label class="block text-slate-400 mb-1">YOLO Confidence Threshold</label>
-              <input type="number" step="0.05" min="0.1" max="1.0" id="cfg-conf" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200 focus:outline-none focus:border-emerald-500" />
-            </div>
-            <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-md transition mt-2">
-              Save Settings
-            </button>
-          </form>
         </div>
       </div>
     </div>
-  </div>
 
-  <script>
-    let ws;
-    let currentDeviceStates = { light: 'OFF', fan: 'OFF', ac: 'OFF' };
+    <script>
+      let ws;
+      let currentDeviceStates = { light: "OFF", fan: "OFF", ac: "OFF" };
 
-    function connectWebSocket() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws/status`;
-      ws = new WebSocket(wsUrl);
+      function connectWebSocket() {
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/ws/status`;
+        ws = new WebSocket(wsUrl);
 
-      ws.onopen = () => {
-        const badge = document.getElementById('connection-badge');
-        badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-2";
-        badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Connected`;
-      };
+        ws.onopen = () => {
+          const badge = document.getElementById("connection-badge");
+          badge.className =
+            "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-2";
+          badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Connected`;
+        };
 
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        updateDashboard(data);
-      };
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          updateDashboard(data);
+        };
 
-      ws.onclose = () => {
-        const badge = document.getElementById('connection-badge');
-        badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-2";
-        badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-400"></span> Disconnected`;
-        setTimeout(connectWebSocket, 3000);
-      };
-    }
+        ws.onclose = () => {
+          const badge = document.getElementById("connection-badge");
+          badge.className =
+            "px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-2";
+          badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-400"></span> Disconnected`;
+          setTimeout(connectWebSocket, 3000);
+        };
+      }
 
-    function updateDashboard(data) {
-      document.getElementById('stat-occupants').innerText = data.occupant_count;
-      
-      const statusElem = document.getElementById('stat-status');
-      statusElem.innerText = data.occupancy_status;
-      statusElem.className = data.occupancy_status === 'Occupied' 
-        ? "text-xl font-bold text-emerald-400 mt-1" 
-        : "text-xl font-bold text-amber-400 mt-1";
+      function updateDashboard(data) {
+        document.getElementById("stat-occupants").innerText =
+          data.occupant_count;
 
-      document.getElementById('stat-empty-dur').innerText = `${data.empty_duration_sec}s`;
-      document.getElementById('stat-countdown').innerText = `${data.seconds_until_empty}s`;
+        const statusElem = document.getElementById("stat-status");
+        statusElem.innerText = data.occupancy_status;
+        statusElem.className =
+          data.occupancy_status === "Occupied"
+            ? "text-xl font-bold text-emerald-400 mt-1"
+            : "text-xl font-bold text-amber-400 mt-1";
 
-      if (data.device_states) {
-        currentDeviceStates = data.device_states;
-        for (const [dev, state] of Object.entries(data.device_states)) {
-          const badge = document.getElementById(`device-badge-${dev}`);
-          if (badge) {
-            badge.innerText = `State: ${state}`;
-            badge.className = state === 'ON' 
-              ? "text-xs text-emerald-400 font-semibold" 
-              : "text-xs text-slate-500 font-semibold";
+        document.getElementById("stat-empty-dur").innerText =
+          `${data.empty_duration_sec}s`;
+        document.getElementById("stat-countdown").innerText =
+          `${data.seconds_until_empty}s`;
+
+        if (data.device_states) {
+          currentDeviceStates = data.device_states;
+          for (const [dev, state] of Object.entries(data.device_states)) {
+            const badge = document.getElementById(`device-badge-${dev}`);
+            if (badge) {
+              badge.innerText = `State: ${state}`;
+              badge.className =
+                state === "ON"
+                  ? "text-xs text-emerald-400 font-semibold"
+                  : "text-xs text-slate-500 font-semibold";
+            }
           }
+        }
+
+        if (data.event_logs) {
+          renderEventLogs(data.event_logs);
         }
       }
 
-      if (data.event_logs) {
-        renderEventLogs(data.event_logs);
-      }
-    }
+      function renderEventLogs(logs) {
+        const tbody = document.getElementById("event-log-rows");
+        if (!logs || logs.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="4" class="py-4 text-center text-slate-500">No events recorded yet.</td></tr>';
+          return;
+        }
 
-    function renderEventLogs(logs) {
-      const tbody = document.getElementById('event-log-rows');
-      if (!logs || logs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-slate-500">No events recorded yet.</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = logs.map(log => `
+        tbody.innerHTML = logs
+          .map(
+            (log) => `
         <tr class="hover:bg-slate-700/30 transition">
           <td class="py-2 text-slate-400">${new Date(log.timestamp).toLocaleTimeString()}</td>
           <td class="py-2 font-medium capitalize text-slate-200">${log.device_id}</td>
-          <td class="py-2 font-bold ${log.action === 'ON' ? 'text-emerald-400' : 'text-rose-400'}">${log.action}</td>
+          <td class="py-2 font-bold ${log.action === "ON" ? "text-emerald-400" : "text-rose-400"}">${log.action}</td>
           <td class="py-2 text-slate-400">${log.reason}</td>
         </tr>
-      `).join('');
-    }
-
-    function toggleDevice(deviceId) {
-      if (!ws || ws.readyState !== WebSocket.OPEN) return;
-      const nextState = currentDeviceStates[deviceId] === 'ON' ? 'OFF' : 'ON';
-      ws.send(JSON.stringify({
-        type: 'TOGGLE_DEVICE',
-        device_id: deviceId,
-        state: nextState
-      }));
-    }
-
-    async function loadConfig() {
-      try {
-        const res = await fetch('/api/config');
-        if (res.ok) {
-          const cfg = await res.json();
-          document.getElementById('cfg-persistence').value = cfg.occupancy.persistence_window_sec;
-          document.getElementById('cfg-empty-timeout').value = cfg.occupancy.empty_timeout_sec;
-          document.getElementById('cfg-conf').value = cfg.detector.confidence_threshold;
-        }
-      } catch (e) {}
-    }
-
-    async function saveConfig(e) {
-      e.preventDefault();
-      try {
-        const res = await fetch('/api/config');
-        const cfg = await res.json();
-        
-        cfg.occupancy.persistence_window_sec = parseInt(document.getElementById('cfg-persistence').value);
-        cfg.occupancy.empty_timeout_sec = parseInt(document.getElementById('cfg-empty-timeout').value);
-        cfg.detector.confidence_threshold = parseFloat(document.getElementById('cfg-conf').value);
-
-        const postRes = await fetch('/api/config', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(cfg)
-        });
-
-        if (postRes.ok) {
-          alert('Settings updated successfully!');
-        }
-      } catch (err) {
-        alert('Failed to update settings: ' + err);
+      `,
+          )
+          .join("");
       }
-    }
 
-    connectWebSocket();
-    loadConfig();
-  </script>
-</body>
+      function toggleDevice(deviceId) {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        const nextState = currentDeviceStates[deviceId] === "ON" ? "OFF" : "ON";
+        ws.send(
+          JSON.stringify({
+            type: "TOGGLE_DEVICE",
+            device_id: deviceId,
+            state: nextState,
+          }),
+        );
+      }
+
+      async function loadConfig() {
+        try {
+          const res = await fetch("/api/config");
+          if (res.ok) {
+            const cfg = await res.json();
+            document.getElementById("cfg-persistence").value =
+              cfg.occupancy.persistence_window_sec;
+            document.getElementById("cfg-empty-timeout").value =
+              cfg.occupancy.empty_timeout_sec;
+            document.getElementById("cfg-conf").value =
+              cfg.detector.confidence_threshold;
+          }
+        } catch (e) {}
+      }
+
+      async function saveConfig(e) {
+        e.preventDefault();
+        try {
+          const res = await fetch("/api/config");
+          const cfg = await res.json();
+
+          cfg.occupancy.persistence_window_sec = parseInt(
+            document.getElementById("cfg-persistence").value,
+          );
+          cfg.occupancy.empty_timeout_sec = parseInt(
+            document.getElementById("cfg-empty-timeout").value,
+          );
+          cfg.detector.confidence_threshold = parseFloat(
+            document.getElementById("cfg-conf").value,
+          );
+
+          const postRes = await fetch("/api/config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(cfg),
+          });
+
+          if (postRes.ok) {
+            alert("Settings updated successfully!");
+          }
+        } catch (err) {
+          alert("Failed to update settings: " + err);
+        }
+      }
+
+      connectWebSocket();
+      loadConfig();
+    </script>
+  </body>
 </html>

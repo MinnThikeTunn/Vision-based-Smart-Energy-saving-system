@@ -31,9 +31,7 @@ def test_transition_to_empty():
 
 
 def test_device_control_matrix_rules():
-    matrix = DeviceControlMatrix(
-        device_timeouts={"light": 180, "fan": 600, "ac": 600}
-    )
+    matrix = DeviceControlMatrix(device_timeouts={"light": 180, "fan": 600, "ac": 600})
 
     # Occupied state -> all devices ON
     actions = matrix.evaluate(
