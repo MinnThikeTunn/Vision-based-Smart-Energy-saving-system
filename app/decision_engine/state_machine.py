@@ -42,7 +42,7 @@ class OccupancyStateMachine:
             return OccupancySnapshot(
                 state=RoomState.EMPTY,
                 occupant_count=0,
-                empty_duration_sec=self.empty_timeout_sec,
+                empty_duration_sec=999999.0,  # Infinite duration so all devices shut OFF immediately at startup
                 seconds_until_empty=0.0,
             )
 

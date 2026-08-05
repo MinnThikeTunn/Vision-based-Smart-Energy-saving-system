@@ -7,7 +7,6 @@ from app.detector.pipeline import VisionPipeline
 
 def test_dummy_detector():
     detector = DummyDetector()
-    # Create fake RGB image (480, 640, 3)
     fake_frame = np.zeros((480, 640, 3), dtype=np.uint8)
     boxes, count, annotated = detector.detect(fake_frame)
 
@@ -17,7 +16,6 @@ def test_dummy_detector():
 
 
 def test_vision_pipeline_lifecycle():
-    # Use dummy frame generator for testing without webcam
     def dummy_capture():
         return np.zeros((480, 640, 3), dtype=np.uint8)
 
@@ -26,9 +24,10 @@ def test_vision_pipeline_lifecycle():
     time.sleep(0.2)
 
     assert pipeline.is_running
-    latest_frame, count = pipeline.get_latest_processed()
+    latest_frame, count, active_zones = pipeline.get_latest_processed()
     assert count >= 0
     assert latest_frame is not None
+    assert isinstance(active_zones, list)
 
     pipeline.stop()
     assert not pipeline.is_running

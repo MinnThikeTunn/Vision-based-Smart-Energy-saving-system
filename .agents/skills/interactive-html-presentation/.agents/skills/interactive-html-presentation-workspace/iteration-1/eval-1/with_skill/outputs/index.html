@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gradient Descent Optimization</title>
+  <!-- Google Fonts: Space Grotesk and JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- MathJax Config -->
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] }, options: { renderActions: { addMenu: [0, '', ''] } } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+  <style>
+    :root {
+      --bg: #07090e;
+      --bg2: #0a0e15;
+      --panel: #0c1119;
+      --line: #19212f;
+      --line2: #2a3547;
+      --text: #e9eef5;
+      --dim: #9aa7bc;
+      --mute: #5d6a81;
+      --mute2: #3a4559;
+      --amber: #f5a623;
+      --blue: #6db0f5;
+      --purple: #a78bfa;
+      --green: #46d07f;
+      --red: #fb7185;
+      --accent: var(--blue);
+      --accent-rgb: 109, 176, 245;
+    }
+    
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background: var(--bg); color: var(--text);
+      font-family: "Space Grotesk", sans-serif; overflow: hidden;
+    }
+    .deck { position: fixed; inset: 0; }
+    
+    #frame {
+      position: fixed; inset: 16px; border: 1px solid var(--line);
+      border-radius: 3px; pointer-events: none; z-index: 40;
+    }
+    #frame i { position: absolute; width: 15px; height: 15px; border-color: var(--line2); border-style: solid; }
+    #frame i.f-tl { top: -1px; left: -1px; border-width: 1.5px 0 0 1.5px; }
+    #frame i.f-tr { top: -1px; right: -1px; border-width: 1.5px 1.5px 0 0; }
+    #frame i.f-bl { bottom: -1px; left: -1px; border-width: 0 0 1.5px 1.5px; }
+    #frame i.f-br { bottom: -1px; right: -1px; border-width: 0 1.5px 1.5px 0; }
+    
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; padding: 9vh 9vw 11vh; opacity: 0;
+      transform: translateY(8px); transition: opacity .42s ease, transform .42s ease;
+      pointer-events: none; overflow: hidden;
+    }
+    .slide.active { opacity: 1; transform: none; pointer-events: auto; }
+    .slide::before {
+      content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(var(--accent-rgb), 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--accent-rgb), 0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, #000 45%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, #000 45%, transparent 100%);
+    }
+    
+    .slide > * { position: relative; z-index: 1; }
+    
+    .slide[data-accent="amber"] { --accent: var(--amber); --accent-rgb: 245, 166, 35; }
+    .slide[data-accent="blue"] { --accent: var(--blue); --accent-rgb: 109, 176, 245; }
+    .slide[data-accent="purple"] { --accent: var(--purple); --accent-rgb: 167, 139, 250; }
+    .slide[data-accent="green"] { --accent: var(--green); --accent-rgb: 70, 208, 127; }
+    .slide[data-accent="red"] { --accent: var(--red); --accent-rgb: 251, 113, 133; }
+
+    .kicker {
+      font-family: "JetBrains Mono", monospace; font-size: clamp(10px, 1.05vw, 13.5px);
+      font-weight: 500; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 1.6vh; display: inline-flex; align-items: center; gap: 12px;
+    }
+    .kicker::before { content: ""; width: 8px; height: 8px; background: var(--accent); box-shadow: 0 0 9px var(--accent); }
+    
+    .rule { height: 1px; background: var(--line); width: 100%; max-width: 60vw; margin: 0 0 3.2vh; position: relative; }
+    .rule::before { content: ""; position: absolute; left: 0; top: 0; width: 64px; height: 1px; background: var(--accent); }
+    
+    h1 { font-weight: 600; font-size: clamp(40px, 7.5vw, 110px); line-height: 0.95; letter-spacing: -0.035em; margin: 0 0 2vh; }
+    h2 { font-weight: 500; font-size: clamp(26px, 4vw, 54px); line-height: 1.02; letter-spacing: -0.025em; margin: 0 0 3vh; }
+    .lead { font-size: clamp(15px, 1.5vw, 22px); line-height: 1.5; color: var(--dim); max-width: 45ch; margin-bottom: 3vh; }
+    .footer-note { font-family: "JetBrains Mono", monospace; font-size: clamp(10px, 0.95vw, 13px); color: var(--mute); letter-spacing: 0.04em; margin-top: 3.4vh; }
+    
+    .cols2 { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 3.5vw; align-items: center; }
+    .cols3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.8vw; }
+    .cols4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.2vw; }
+    
+    .card {
+      background: linear-gradient(180deg, var(--panel) 0%, var(--bg2) 100%);
+      border: 1px solid var(--line); border-radius: 4px; padding: 3vh 1.8vw; position: relative;
+    }
+    .card::before, .card::after { content: ""; position: absolute; width: 10px; height: 10px; border-color: var(--accent); border-style: solid; }
+    .card::before { top: -1px; left: -1px; border-width: 1.5px 0 0 1.5px; }
+    .card::after { top: -1px; right: -1px; border-width: 1.5px 1.5px 0 0; }
+    
+    .card h3 { font-size: 20px; font-weight: 600; margin: 0 0 1.5vh; color: var(--text); }
+    .card p { font-size: 14px; line-height: 1.6; color: var(--dim); margin: 0; }
+    .card .stat { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--accent); margin-bottom: 1.5vh; letter-spacing: 0.1em; text-transform: uppercase; }
+
+    .stagewrap { height: 50vh; }
+    .stage {
+      position: relative; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; width: 100%; height: 100%;
+    }
+    .stage canvas { display: block; width: 100%; height: 100%; }
+    .stage .cap { position: absolute; top: 12px; left: 16px; font-family: "JetBrains Mono", monospace; font-size: clamp(9px, 0.9vw, 12px); letter-spacing: 0.2em; text-transform: uppercase; color: var(--mute); z-index: 2; }
+    .stage .cap b { color: var(--accent); font-weight: 500; }
+    
+    .ctl { display: flex; flex-direction: column; gap: 16px; margin-top: 2vh; }
+    .ctl-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .ctl-row label { font-family: "JetBrains Mono", monospace; font-size: 14px; color: var(--dim); display: flex; align-items: center; gap: 12px; }
+    
+    button.btn {
+      font-family: "JetBrains Mono", monospace; font-size: clamp(10px, 1.05vw, 13px); letter-spacing: 0.1em; text-transform: uppercase;
+      background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 8px 16px; border-radius: 4px; cursor: pointer; transition: background .15s, color .15s;
+    }
+    button.btn:hover { background: rgba(var(--accent-rgb), 0.12); }
+    button.btn.on { background: rgba(var(--accent-rgb), 0.16); }
+
+    input[type=range] {
+      -webkit-appearance: none; appearance: none; width: clamp(120px, 13vw, 210px); height: 2px; background: var(--line2); outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 13px; height: 13px; background: var(--accent); cursor: pointer; transform: rotate(45deg); box-shadow: 0 0 9px rgba(var(--accent-rgb), 0.6);
+    }
+    
+    #progress { position: fixed; left: 0; bottom: 0; height: 2px; background: var(--accent); width: 0; z-index: 50; transition: width .42s ease; box-shadow: 0 0 8px var(--accent); }
+    #counter { position: fixed; right: 34px; top: 30px; font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--mute); letter-spacing: 0.12em; z-index: 50; }
+    #counter b { color: var(--accent); }
+    
+    .nav-hints { position: fixed; left: 34px; bottom: 30px; font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--mute); letter-spacing: 0.05em; z-index: 50; }
+
+    /* Interactive Stats Panel */
+    .stats-panel {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: var(--panel); border: 1px solid var(--line); padding: 16px; border-radius: 4px; margin-top: 16px;
+    }
+    .stat-item { display: flex; flex-direction: column; gap: 4px; }
+    .stat-lbl { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--mute); text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-val { font-family: "Space Grotesk", sans-serif; font-size: 18px; font-weight: 600; color: var(--text); }
+    .stat-val.highlight { color: var(--accent); }
+    
+    @media print {
+      html, body { overflow: visible; height: auto; background: #fff; }
+      .deck { position: static; }
+      #progress, #counter, #frame, .nav-hints { display: none !important; }
+      .slide { position: relative; opacity: 1 !important; transform: none !important; page-break-after: always; height: 100vh; }
+    }
+  </style>
+</head>
+<body>
+  <div id="frame">
+    <i class="f-tl"></i><i class="f-tr"></i><i class="f-bl"></i><i class="f-br"></i>
+  </div>
+
+  <div class="deck" id="deck">
+    <!-- Slide 1: Hook -->
+    <section class="slide active" id="slide-1" data-accent="blue">
+      <div class="kicker">Act I · Motivation</div>
+      <h1>Gradient Descent</h1>
+      <div class="lead">Understanding the optimization engine powering neural networks, deep learning, and statistical model training.</div>
+      <div class="rule"></div>
+      <div class="footer-note">Press [Space] or [→] to advance, [←] to go back.</div>
+    </section>
+
+    <!-- Slide 2: Math -->
+    <section class="slide" id="slide-2" data-accent="purple">
+      <div class="kicker">Act I · Mathematics</div>
+      <div class="cols2">
+        <div>
+          <h2>The Update Formula</h2>
+          <div class="lead">The parameters are iteratively adjusted by taking small steps opposite to the gradient vector of the loss function.</div>
+          <div class="rule"></div>
+          <div class="footer-note">Optimal steps yield convergence; poor tuning yields divergence.</div>
+        </div>
+        <div class="card">
+          <div class="stat">Core Equation</div>
+          <h3>Iterative Update Rule</h3>
+          <div style="font-size: clamp(18px, 2vw, 24px); margin: 2.5vh 0; color: var(--purple); text-align: center;">
+            $$\theta_{t+1} = \theta_t - \eta \nabla L(\theta_t)$$
+          </div>
+          <p>
+            Where $\theta$ represents the weights, $\eta$ is the learning rate, and $\nabla L(\theta)$ is the slope/gradient of the loss function. We subtract the gradient to step downhill toward the minimum.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 3: Interactive Visualizer -->
+    <section class="slide" id="slide-3" data-accent="amber">
+      <div class="kicker">Act II · Mechanics</div>
+      <div class="cols2">
+        <div>
+          <h2>Visual Simulator</h2>
+          <div class="lead">Adjust the learning rate ($\eta$) and observe the steps. Notice how divergence occurs when $\eta \ge 1.0$ (for $f(x) = x^2$).</div>
+          
+          <div class="ctl">
+            <div class="ctl-row">
+              <label>Learning Rate ($\eta$)</label>
+              <input id="lr-slider" type="range" min="0.05" max="1.15" step="0.05" value="0.2">
+            </div>
+            <div class="ctl-row">
+              <label>Start Position ($x_0$)</label>
+              <input id="start-slider" type="range" min="-9" max="9" step="1" value="8">
+            </div>
+            <div class="ctl-row" style="margin-top: 8px;">
+              <button class="btn" id="btn-step">Single Step</button>
+              <button class="btn" id="btn-play">Auto Play</button>
+              <button class="btn" id="btn-reset">Reset</button>
+            </div>
+          </div>
+
+          <div class="stats-panel">
+            <div class="stat-item">
+              <div class="stat-lbl">Regime</div>
+              <div class="stat-val highlight" id="stat-regime">Monotonic</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-lbl">Steps Taken</div>
+              <div class="stat-val" id="stat-steps">0</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-lbl">Current $x$</div>
+              <div class="stat-val" id="stat-x">8.00</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-lbl">Loss $f(x)$</div>
+              <div class="stat-val" id="stat-loss">64.00</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stagewrap">
+          <div class="stage">
+            <span class="cap">Loss Surface: $f(x) = x^2$ &amp; <b>Path</b></span>
+            <canvas id="gd-cv"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 4: Analysis -->
+    <section class="slide" id="slide-4" data-accent="green">
+      <div class="kicker">Act III · Analysis</div>
+      <h2>Learning Rate Regimes</h2>
+      <div class="lead" style="max-width: 65ch;">The choice of learning rate $\eta$ dramatically determines the outcome of gradient descent.</div>
+      <div class="cols4">
+        <div class="card" style="--accent: var(--blue)">
+          <div class="stat">Slow Convergence</div>
+          <h3>$\eta < 0.5$</h3>
+          <p>Steps are tiny and proceed in a straight line toward the minimum. Highly stable but computationally slow.</p>
+        </div>
+        <div class="card" style="--accent: var(--green)">
+          <div class="stat">Perfect Optimization</div>
+          <h3>$\eta = 0.5$</h3>
+          <p>The step reaches the absolute minimum at $x = 0$ in exactly one iteration. The optimal scenario.</p>
+        </div>
+        <div class="card" style="--accent: var(--amber)">
+          <div class="stat">Oscillating Steps</div>
+          <h3>$0.5 < \eta < 1.0$</h3>
+          <p>Steps overshoot the minimum, bouncing back and forth across the valley, but still successfully converge.</p>
+        </div>
+        <div class="card" style="--accent: var(--red)">
+          <div class="stat">Divergent Growth</div>
+          <h3>$\eta \ge 1.0$</h3>
+          <p>Steps overshoot so severely that the distance from the minimum increases exponentially, leading to overflow.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="progress"></div>
+  <div id="counter">Slide <b>1</b> / 4</div>
+  <div class="nav-hints">Use Left/Right Arrows or Space to navigate</div>
+
+  <script>
+    // Navigation Logic
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    let currentIdx = 0;
+
+    function showSlide(index) {
+      if (index < 0 || index >= slides.length) return;
+      slides[currentIdx].classList.remove('active');
+      currentIdx = index;
+      slides[currentIdx].classList.add('active');
+      
+      const progress = document.getElementById('progress');
+      progress.style.width = `${((currentIdx + 1) / slides.length) * 100}%`;
+      
+      const counter = document.getElementById('counter');
+      counter.innerHTML = `Slide <b>${currentIdx + 1}</b> / ${slides.length}`;
+      
+      const currentSlide = slides[currentIdx];
+      const accent = getComputedStyle(currentSlide).getPropertyValue('--accent').trim();
+      progress.style.background = accent;
+      progress.style.boxShadow = `0 0 8px ${accent}`;
+      
+      window.dispatchEvent(new CustomEvent('slideChanged', { detail: { index: currentIdx, id: currentSlide.id } }));
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'Space') {
+        showSlide(currentIdx + 1);
+      } else if (e.key === 'ArrowLeft') {
+        showSlide(currentIdx - 1);
+      }
+    });
+
+    showSlide(0);
+
+    // Interactive Gradient Descent Canvas Logic
+    const canvas = document.getElementById('gd-cv');
+    const ctx = canvas.getContext('2d');
+
+    let lr = 0.2;
+    let startX = 8.0;
+    let currentX = 8.0;
+    let path = [];
+    let isPlaying = false;
+    let playInterval = null;
+
+    const lrSlider = document.getElementById('lr-slider');
+    const startSlider = document.getElementById('start-slider');
+    const btnStep = document.getElementById('btn-step');
+    const btnPlay = document.getElementById('btn-play');
+    const btnReset = document.getElementById('btn-reset');
+
+    const statRegime = document.getElementById('stat-regime');
+    const statSteps = document.getElementById('stat-steps');
+    const statX = document.getElementById('stat-x');
+    const statLoss = document.getElementById('stat-loss');
+
+    function updateStats() {
+      statSteps.textContent = path.length - 1;
+      statX.textContent = currentX.toFixed(4);
+      statLoss.textContent = (currentX * currentX).toFixed(4);
+      
+      if (lr >= 1.0) {
+        statRegime.textContent = "Diverging ⚡";
+        statRegime.style.color = "var(--red)";
+      } else if (lr > 0.5) {
+        statRegime.textContent = "Oscillating ⟷";
+        statRegime.style.color = "var(--amber)";
+      } else if (lr === 0.5) {
+        statRegime.textContent = "Optimal ⭐";
+        statRegime.style.color = "var(--green)";
+      } else {
+        statRegime.textContent = "Monotonic ➔";
+        statRegime.style.color = "var(--blue)";
+      }
+    }
+
+    function initGD() {
+      lr = parseFloat(lrSlider.value);
+      startX = parseFloat(startSlider.value);
+      currentX = startX;
+      path = [currentX];
+      updateStats();
+      drawGD();
+    }
+
+    function performStep() {
+      if (path.length > 50) return; // Prevent infinite loop rendering issues
+      const grad = 2 * currentX; // Gradient of f(x) = x^2
+      currentX = currentX - lr * grad;
+      path.push(currentX);
+      updateStats();
+      drawGD();
+    }
+
+    function togglePlay() {
+      if (isPlaying) {
+        clearInterval(playInterval);
+        btnPlay.textContent = "Auto Play";
+        isPlaying = false;
+      } else {
+        btnPlay.textContent = "Pause";
+        isPlaying = true;
+        playInterval = setInterval(() => {
+          performStep();
+          if (Math.abs(currentX) < 1e-4 || Math.abs(currentX) > 100 || path.length > 40) {
+            togglePlay();
+          }
+        }, 300);
+      }
+    }
+
+    lrSlider.addEventListener('input', () => {
+      lr = parseFloat(lrSlider.value);
+      initGD();
+    });
+
+    startSlider.addEventListener('input', () => {
+      startX = parseFloat(startSlider.value);
+      initGD();
+    });
+
+    btnStep.addEventListener('click', performStep);
+    btnPlay.addEventListener('click', togglePlay);
+    btnReset.addEventListener('click', initGD);
+
+    function drawGD() {
+      if (!canvas.width || !canvas.height) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const pad = 40;
+      const w = canvas.width - pad * 2;
+      const h = canvas.height - pad * 2;
+
+      // Coordinate mapping functions
+      // x range: [-10, 10]
+      // y range: [-5, 100]
+      function toCanvasX(x) {
+        return pad + ((x + 10) / 20) * w;
+      }
+      function toCanvasY(y) {
+        return pad + h - ((y + 5) / 105) * h;
+      }
+
+      // Draw Grid lines
+      ctx.strokeStyle = '#141c2b';
+      ctx.lineWidth = 1;
+      for (let i = -10; i <= 10; i += 2) {
+        ctx.beginPath();
+        ctx.moveTo(toCanvasX(i), toCanvasY(-5));
+        ctx.lineTo(toCanvasX(i), toCanvasY(100));
+        ctx.stroke();
+      }
+      for (let i = 0; i <= 100; i += 20) {
+        ctx.beginPath();
+        ctx.moveTo(toCanvasX(-10), toCanvasY(i));
+        ctx.lineTo(toCanvasX(10), toCanvasY(i));
+        ctx.stroke();
+      }
+
+      // Draw Axis
+      ctx.strokeStyle = '#2a3547';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(toCanvasX(-10), toCanvasY(0));
+      ctx.lineTo(toCanvasX(10), toCanvasY(0));
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(toCanvasX(0), toCanvasY(-5));
+      ctx.lineTo(toCanvasX(0), toCanvasY(100));
+      ctx.stroke();
+
+      // Draw Quadratic Curve f(x) = x^2
+      ctx.strokeStyle = 'rgba(109, 176, 245, 0.4)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let x = -10; x <= 10; x += 0.1) {
+        const y = x * x;
+        if (x === -10) ctx.moveTo(toCanvasX(x), toCanvasY(y));
+        else ctx.lineTo(toCanvasX(x), toCanvasY(y));
+      }
+      ctx.stroke();
+
+      // Draw Paths and gradient steps
+      ctx.strokeStyle = lr >= 1.0 ? 'rgba(251, 113, 133, 0.8)' : 'rgba(245, 166, 35, 0.8)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([2, 4]);
+      
+      // We will trace steps
+      for (let i = 0; i < path.length - 1; i++) {
+        const xA = path[i];
+        const yA = xA * xA;
+        const xB = path[i+1];
+        const yB = xB * xB;
+
+        // Path step line
+        ctx.beginPath();
+        ctx.setLineDash([]);
+        ctx.moveTo(toCanvasX(xA), toCanvasY(yA));
+        ctx.lineTo(toCanvasX(xB), toCanvasY(yB));
+        ctx.stroke();
+
+        // Draw helper projection lines if not out of bounds
+        if (Math.abs(xA) < 11 && Math.abs(xB) < 11) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.moveTo(toCanvasX(xA), toCanvasY(yA));
+          ctx.lineTo(toCanvasX(xA), toCanvasY(0));
+          ctx.stroke();
+        }
+      }
+      ctx.setLineDash([]);
+
+      // Draw path points
+      path.forEach((xVal, index) => {
+        if (Math.abs(xVal) > 12) return; // out of screen bounds
+        const yVal = xVal * xVal;
+        
+        ctx.fillStyle = index === 0 ? 'var(--blue)' : (index === path.length - 1 ? 'var(--accent)' : 'rgba(255,255,255,0.5)');
+        ctx.beginPath();
+        ctx.arc(toCanvasX(xVal), toCanvasY(yVal), index === path.length - 1 ? 6 : 4, 0, Math.PI * 2);
+        ctx.fill();
+        
+        if (index === path.length - 1) {
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(toCanvasX(xVal), toCanvasY(yVal), 8, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      });
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.parentNode.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      drawGD();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('slideChanged', (e) => {
+      if (e.detail.id === 'slide-3') {
+        setTimeout(resizeCanvas, 50); // slight timeout for display block dimensions to settle
+      }
+    });
+
+    // Initialize on first load
+    initGD();
+  </script>
+</body>
+</html>

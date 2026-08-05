@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Core Self-Attention Explained | Transformer Architecture</title>
+  <!-- Google Fonts: Space Grotesk and JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- MathJax Config -->
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] }, options: { renderActions: { addMenu: [0, '', ''] } } };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+  <style>
+    :root {
+      --bg: #07090e;
+      --bg2: #0a0e15;
+      --panel: #0c1119;
+      --line: #19212f;
+      --line2: #2a3547;
+      --text: #e9eef5;
+      --dim: #9aa7bc;
+      --mute: #5d6a81;
+      --mute2: #3a4559;
+      --amber: #f5a623;
+      --blue: #6db0f5;
+      --purple: #a78bfa;
+      --green: #46d07f;
+      --red: #fb7185;
+      --accent: var(--blue);
+      --accent-rgb: 109, 176, 245;
+    }
+    
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background: var(--bg); color: var(--text);
+      font-family: "Space Grotesk", sans-serif; overflow: hidden;
+    }
+    .deck { position: fixed; inset: 0; }
+    
+    #frame {
+      position: fixed; inset: 16px; border: 1px solid var(--line);
+      border-radius: 32px; pointer-events: none; z-index: 40;
+    }
+    #frame i { position: absolute; width: 15px; height: 15px; border-color: var(--line2); border-style: solid; }
+    #frame i.f-tl { top: -1px; left: -1px; border-width: 1.5px 0 0 1.5px; border-top-left-radius: 32px; }
+    #frame i.f-tr { top: -1px; right: -1px; border-width: 1.5px 1.5px 0 0; border-top-right-radius: 32px; }
+    #frame i.f-bl { bottom: -1px; left: -1px; border-width: 0 0 1.5px 1.5px; border-bottom-left-radius: 32px; }
+    #frame i.f-br { bottom: -1px; right: -1px; border-width: 0 1.5px 1.5px 0; border-bottom-right-radius: 32px; }
+    
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; padding: 9vh 9vw 11vh; opacity: 0;
+      transform: translateY(8px); transition: opacity .42s ease, transform .42s ease;
+      pointer-events: none; overflow: hidden;
+    }
+    .slide.active { opacity: 1; transform: none; pointer-events: auto; }
+    .slide::before {
+      content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(var(--accent-rgb), 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--accent-rgb), 0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, #000 45%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, #000 45%, transparent 100%);
+    }
+    
+    .slide > * { position: relative; z-index: 1; }
+    
+    .slide[data-accent="amber"] { --accent: var(--amber); --accent-rgb: 245, 166, 35; }
+    .slide[data-accent="blue"] { --accent: var(--blue); --accent-rgb: 109, 176, 245; }
+    .slide[data-accent="purple"] { --accent: var(--purple); --accent-rgb: 167, 139, 250; }
+    .slide[data-accent="green"] { --accent: var(--green); --accent-rgb: 70, 208, 127; }
+
+    .kicker {
+      font-family: "JetBrains Mono", monospace; font-size: clamp(10px, 1.05vw, 13.5px);
+      font-weight: 500; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 2vh; display: inline-flex; align-items: center; gap: 12px;
+    }
+    .kicker::before { content: ""; width: 8px; height: 8px; background: var(--accent); box-shadow: 0 0 9px var(--accent); border-radius: 50%; }
+    
+    .rule { height: 1px; background: var(--line); width: 100%; max-width: 60vw; margin: 0 0 4vh; position: relative; }
+    .rule::before { position: absolute; left: 0; top: 0; width: 64px; height: 1px; background: var(--accent); }
+    
+    h1 { font-weight: 800; font-size: clamp(38px, 6.5vw, 96px); line-height: 1.05; letter-spacing: -0.04em; margin: 0 0 3vh; color: var(--text); }
+    h2 { font-weight: 800; font-size: clamp(26px, 3.5vw, 54px); line-height: 1.1; letter-spacing: -0.03em; margin: 0 0 3vh; color: var(--text); }
+    .lead { font-size: clamp(15px, 1.4vw, 21px); line-height: 1.6; color: var(--dim); max-width: 55ch; margin-bottom: 3vh; }
+    .footer-note { font-family: "JetBrains Mono", monospace; font-size: clamp(10px, 0.95vw, 13px); color: var(--mute); letter-spacing: 0.04em; margin-top: 4vh; }
+    
+    .cols2 { display: grid; grid-template-columns: 1fr 1.1fr; gap: 4vw; align-items: center; }
+    .cols3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2vw; margin-top: 3vh; }
+    
+    .card {
+      background: linear-gradient(180deg, var(--panel) 0%, var(--bg2) 100%);
+      border: 1px solid var(--line); border-radius: 24px; padding: 3vh 2vw; position: relative;
+      transition: border-color 0.3s ease, transform 0.3s ease;
+    }
+    .card:hover {
+      border-color: rgba(var(--accent-rgb), 0.4);
+      transform: translateY(-2px);
+    }
+    .card h3 { font-weight: 700; font-size: 20px; margin: 0 0 1.5vh 0; color: var(--accent); }
+    .card p { font-size: 14.5px; line-height: 1.6; color: var(--dim); margin: 0; }
+    
+    .stagewrap { height: 50vh; display: flex; flex-direction: column; }
+    .stage {
+      position: relative; background: var(--bg2); border: 1px solid var(--line); border-radius: 24px; overflow: hidden; width: 100%; height: 100%;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+    }
+    .stage canvas { display: block; width: 100%; height: 100%; }
+    .stage .cap { position: absolute; top: 16px; left: 20px; font-family: "JetBrains Mono", monospace; font-size: clamp(9px, 0.9vw, 12px); letter-spacing: 0.2em; text-transform: uppercase; color: var(--mute); z-index: 2; }
+    .stage .cap b { color: var(--accent); font-weight: 500; }
+    
+    .ctl { display: flex; flex-direction: column; gap: 20px; margin-top: 3vh; background: var(--panel); padding: 20px; border-radius: 16px; border: 1px solid var(--line); }
+    .slider-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+    .slider-row label { font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--dim); }
+    
+    button.btn {
+      font-family: "JetBrains Mono", monospace; font-size: clamp(10px, 1.05vw, 13.5px); letter-spacing: 0.1em; text-transform: uppercase;
+      background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 8px 18px; border-radius: 24px; cursor: pointer; transition: all .2s;
+    }
+    button.btn:hover { background: rgba(var(--accent-rgb), 0.12); transform: scale(1.03); }
+    button.btn.on { background: rgba(var(--accent-rgb), 0.16); }
+
+    input[type=range] {
+      -webkit-appearance: none; appearance: none; flex-grow: 1; height: 4px; background: var(--line2); outline: none; border-radius: 2px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; transition: transform 0.1s; box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.8);
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    
+    .val-display { font-family: "JetBrains Mono", monospace; color: var(--accent); font-weight: 600; min-width: 45px; text-align: right; }
+
+    #progress { position: fixed; left: 0; bottom: 0; height: 3px; background: var(--accent); width: 0; z-index: 50; transition: width .42s ease; box-shadow: 0 0 8px var(--accent); }
+    #counter { position: fixed; right: 40px; top: 35px; font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--mute); letter-spacing: 0.12em; z-index: 50; }
+    #counter b { color: var(--accent); }
+    
+    .formula-box {
+      background: rgba(var(--accent-rgb), 0.03); border-left: 3px solid var(--accent); padding: 15px 20px; border-radius: 0 12px 12px 0; margin: 2vh 0; font-size: 1.1em;
+    }
+
+    /* Key visual styles */
+    .metric-badge {
+      display: inline-flex; align-items: center; gap: 8px; background: rgba(var(--accent-rgb), 0.08); border: 1px solid rgba(var(--accent-rgb), 0.2);
+      padding: 6px 14px; border-radius: 30px; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--accent); margin-bottom: 2vh;
+    }
+
+    .nav-hints {
+      position: fixed; left: 40px; top: 35px; font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--mute); z-index: 50;
+    }
+    
+    @media print {
+      html, body { overflow: visible; height: auto; background: #fff; }
+      .deck { position: static; }
+      #progress, #counter, #frame, .nav-hints { display: none !important; }
+      .slide { position: relative; opacity: 1 !important; transform: none !important; page-break-after: always; height: 100vh; }
+    }
+  </style>
+</head>
+<body>
+  <div id="frame">
+    <i class="f-tl"></i><i class="f-tr"></i><i class="f-bl"></i><i class="f-br"></i>
+  </div>
+
+  <div class="nav-hints">Use Left/Right Arrow or Space keys to navigate</div>
+  <div id="counter">Slide <b>1</b> / 5</div>
+
+  <div class="deck" id="deck">
+    <!-- Slide 1 (Hook/Intro) -->
+    <section class="slide active" id="slide-1" data-accent="blue">
+      <div class="kicker">Act I · Architecture</div>
+      <div class="metric-badge">Attention Is All You Need</div>
+      <h1>Core Self-Attention</h1>
+      <div class="rule"></div>
+      <div class="cols2">
+        <div>
+          <div class="lead">
+            The core engine powering the Transformer architecture. Instead of processing tokens sequentially, self-attention maps relationships across the entire sequence simultaneously.
+          </div>
+          <div class="formula-box">
+            $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div class="card">
+            <h3>Q · Query</h3>
+            <p>Represents the current token looking for context from other parts of the sequence.</p>
+          </div>
+          <div class="card">
+            <h3>K · Key</h3>
+            <p>Represents all tokens in the sequence, offering clues or indices for matching.</p>
+          </div>
+          <div class="card">
+            <h3>V · Value</h3>
+            <p>Contains the actual content or information corresponding to each token.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 2 (The Problem we solve) -->
+    <section class="slide" id="slide-2" data-accent="purple">
+      <div class="kicker">Act I · The Bottleneck</div>
+      <div class="metric-badge">Context Over Distance</div>
+      <h2>Why Self-Attention?</h2>
+      <div class="rule"></div>
+      <div class="cols3">
+        <div class="card">
+          <h3>Sequential Bottleneck</h3>
+          <p>RNNs process words step-by-step. Information from early tokens decays, creating a vanishing gradient problem over long sentences.</p>
+        </div>
+        <div class="card">
+          <h3>O(1) Path Length</h3>
+          <p>Self-attention connects any two tokens with a single operation, regardless of distance. Long-range dependencies are resolved instantly.</p>
+        </div>
+        <div class="card">
+          <h3>Parallel Training</h3>
+          <p>Since relationships are computed in parallel matrices, GPUs can process entire sequences simultaneously, bypassing the recurrence limit.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 3 (Interactive Mechanics) -->
+    <section class="slide" id="slide-3" data-accent="amber">
+      <div class="kicker">Act II · Mechanics</div>
+      <div class="metric-badge">Dot-Product Similarity</div>
+      <div class="cols2">
+        <div>
+          <h2>Vector Alignment</h2>
+          <div class="lead">Adjust the alignment slider to rotate the Key vector ($K$) relative to the Query vector ($Q$). Watch how the similarity score, scaling factor, and attention weight react.</div>
+          
+          <div class="ctl">
+            <div class="slider-row">
+              <label>Angle ($\theta$)</label>
+              <input id="angle-slider" type="range" min="0" max="360" value="45">
+              <span class="val-display" id="angle-val">45°</span>
+            </div>
+            <div class="slider-row">
+              <label>Query Norm ($||Q||$)</label>
+              <input id="q-norm-slider" type="range" min="50" max="150" value="100">
+              <span class="val-display" id="q-norm-val">100</span>
+            </div>
+          </div>
+          
+          <div style="margin-top: 3vh; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="card" style="padding: 15px;">
+              <h3 style="font-size: 15px; margin-bottom: 5px;">Raw Dot Product ($Q \cdot K$)</h3>
+              <div id="dot-prod-val" style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: bold; color: var(--accent);">0.00</div>
+            </div>
+            <div class="card" style="padding: 15px;">
+              <h3 style="font-size: 15px; margin-bottom: 5px;">Scaled Score ($\frac{Q \cdot K}{\sqrt{d_k}}$)</h3>
+              <div id="scaled-val" style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: bold; color: var(--accent);">0.00</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stagewrap">
+          <div class="stage">
+            <span class="cap">Dynamic <b>Vector</b> Spaces ($d_k = 64$)</span>
+            <canvas id="attn-cv"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 4 (Why scale?) -->
+    <section class="slide" id="slide-4" data-accent="green">
+      <div class="kicker">Act II · The Scaling Factor</div>
+      <div class="metric-badge">Preventing Saturation</div>
+      <h2>Why Divide by $\sqrt{d_k}$?</h2>
+      <div class="rule"></div>
+      <div class="cols2">
+        <div>
+          <div class="lead">
+            For large values of $d_k$ (dimension size), dot products grow extremely large in magnitude. This pushes the softmax function into regions with extremely small gradients.
+          </div>
+          <div class="formula-box">
+            $$\text{Softmax}(x)_i = \frac{e^{x_i}}{\sum_j e^{x_j}}$$
+          </div>
+          <p style="color: var(--dim); line-height: 1.6;">
+            By scaling by $\frac{1}{\sqrt{d_k}}$, we maintain the variance of the dot products at $1.0$, preventing the softmax from saturating (which would otherwise result in flat gradients and dead learning).
+          </p>
+        </div>
+        <div class="card" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">
+          <h3 style="margin-bottom: 2vh;">The Gradient Killer</h3>
+          <ul style="color: var(--dim); padding-left: 20px; line-height: 1.8; margin: 0;">
+            <li>Assume components of $q$ and $k$ are independent random variables with mean $0$ and variance $1$.</li>
+            <li>Their dot product $q \cdot k = \sum_{i=1}^{d_k} q_i k_i$ has mean $0$ and variance $d_k$.</li>
+            <li>Dividing by $\sqrt{d_k}$ pulls the variance back to $1.0$.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 5 (Summary & Takeaways) -->
+    <section class="slide" id="slide-5" data-accent="blue">
+      <div class="kicker">Act III · Summary</div>
+      <div class="metric-badge">Foundations of Modern AI</div>
+      <h2>Key Takeaways</h2>
+      <div class="rule"></div>
+      <div class="cols3">
+        <div class="card">
+          <h3>Contextual Embeddings</h3>
+          <p>Unlike static word embeddings (Word2Vec), self-attention creates dynamic representations that change based on surrounding words.</p>
+        </div>
+        <div class="card">
+          <h3>Foundation of LLMs</h3>
+          <p>From GPT to Claude, every modern large language model relies on this exact scaled dot-product formula scaled across layers.</p>
+        </div>
+        <div class="card">
+          <h3>Quadratic Complexity</h3>
+          <p>Because every token compares to every other token, self-attention requires $O(N^2)$ compute and memory space, a key area of ongoing research.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="progress"></div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    let currentIdx = 0;
+
+    function showSlide(index) {
+      if (index < 0 || index >= slides.length) return;
+      slides[currentIdx].classList.remove('active');
+      currentIdx = index;
+      slides[currentIdx].classList.add('active');
+      
+      const progress = document.getElementById('progress');
+      progress.style.width = `${((currentIdx + 1) / slides.length) * 100}%`;
+      
+      const counter = document.getElementById('counter');
+      counter.innerHTML = `Slide <b>${currentIdx + 1}</b> / ${slides.length}`;
+      
+      const currentSlide = slides[currentIdx];
+      const accent = getComputedStyle(currentSlide).getPropertyValue('--accent').trim();
+      progress.style.background = accent;
+      progress.style.boxShadow = `0 0 8px ${accent}`;
+      
+      window.dispatchEvent(new CustomEvent('slideChanged', { detail: { index: currentIdx, id: currentSlide.id } }));
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'Space') {
+        showSlide(currentIdx + 1);
+      } else if (e.key === 'ArrowLeft') {
+        showSlide(currentIdx - 1);
+      }
+    });
+
+    showSlide(0);
+
+    // Canvas Interactive Setup
+    const canvas = document.getElementById('attn-cv');
+    const ctx = canvas.getContext('2d');
+    
+    let angleVal = 45;
+    let qNorm = 100;
+    const dk = 64;
+    const sqrtDk = Math.sqrt(dk); // 8
+
+    const angleSlider = document.getElementById('angle-slider');
+    const qNormSlider = document.getElementById('q-norm-slider');
+    
+    const angleValText = document.getElementById('angle-val');
+    const qNormValText = document.getElementById('q-norm-val');
+    
+    const dotProdValText = document.getElementById('dot-prod-val');
+    const scaledValText = document.getElementById('scaled-val');
+
+    angleSlider.addEventListener('input', (e) => {
+      angleVal = parseInt(e.target.value);
+      angleValText.textContent = `${angleVal}°`;
+      updateScores();
+      drawCanvas();
+    });
+
+    qNormSlider.addEventListener('input', (e) => {
+      qNorm = parseInt(e.target.value);
+      qNormValText.textContent = qNorm;
+      updateScores();
+      drawCanvas();
+    });
+
+    function updateScores() {
+      // Scale vectors dynamically
+      const rad = (angleVal * Math.PI) / 180;
+      
+      // Assume normalized base vectors scaled by sliders
+      // Query length: qNorm / 100
+      // Key length: 1.0 (fixed reference scale)
+      // Dot product: |Q| * |K| * cos(theta)
+      const qLen = qNorm / 100;
+      const kLen = 1.0;
+      
+      const rawDot = qLen * kLen * Math.cos(rad) * 10; // amplified slightly for visual realism
+      const scaledDot = rawDot / sqrtDk;
+      
+      dotProdValText.textContent = rawDot.toFixed(2);
+      scaledValText.textContent = scaledDot.toFixed(2);
+    }
+
+    function drawCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+      
+      const cx = w / 2;
+      const cy = h / 2;
+      
+      // Draw grid lines
+      ctx.strokeStyle = '#19212f';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      // circles
+      for (let r = 40; r <= 160; r += 40) {
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      }
+      // axes
+      ctx.moveTo(cx - 180, cy);
+      ctx.lineTo(cx + 180, cy);
+      ctx.moveTo(cx, cy - 180);
+      ctx.lineTo(cx, cy + 180);
+      ctx.stroke();
+      
+      const rad = (angleVal * Math.PI) / 180;
+      
+      // Vectors
+      const qLength = (qNorm / 100) * 100; // Visual length
+      const kLength = 100; // Visual length
+      
+      // Draw Key Vector K (Rotates based on slider)
+      const kx = cx + kLength * Math.cos(rad);
+      const ky = cy - kLength * Math.sin(rad); // negative because canvas y is down
+      
+      // Draw Query Vector Q (Always horizontal/aligned as baseline)
+      const qx = cx + qLength;
+      const qy = cy;
+      
+      // Projection of Q onto K helper lines (dashed)
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = '#5d6a81';
+      ctx.beginPath();
+      ctx.moveTo(qx, qy);
+      // Project q onto k: projection vector = (q . k / |k|^2) * k
+      const qDotK_normalized = (qLength * Math.cos(rad));
+      const projX = cx + qDotK_normalized * Math.cos(rad);
+      const projY = cy - qDotK_normalized * Math.sin(rad);
+      ctx.lineTo(projX, projY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // Draw Arc for angle
+      ctx.strokeStyle = '#f5a623';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 30, 0, -rad, true);
+      ctx.stroke();
+      
+      // Draw Query Arrow Q
+      drawArrow(cx, cy, qx, qy, '#6db0f5', 3);
+      // Draw Key Arrow K
+      drawArrow(cx, cy, kx, ky, '#a78bfa', 3);
+      
+      // Labels
+      ctx.fillStyle = '#6db0f5';
+      ctx.font = '500 12px "JetBrains Mono", monospace';
+      ctx.fillText('Q (Query)', qx + 8, qy + 4);
+      
+      ctx.fillStyle = '#a78bfa';
+      ctx.fillText('K (Key)', kx + (Math.cos(rad) * 12) - 15, ky - (Math.sin(rad) * 12));
+      
+      // Angle label
+      ctx.fillStyle = '#f5a623';
+      ctx.fillText('θ', cx + 38 * Math.cos(rad/2), cy - 38 * Math.sin(rad/2) + 4);
+    }
+    
+    function drawArrow(fromx, fromy, tox, toy, color, width) {
+      const headlen = 10; // length of head in pixels
+      const dx = tox - fromx;
+      const dy = toy - fromy;
+      const angle = Math.atan2(dy, dx);
+      
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = width;
+      
+      ctx.beginPath();
+      ctx.moveTo(fromx, fromy);
+      ctx.lineTo(tox, toy);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(tox, toy);
+      ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+    }
+    
+    // Resize & initial draw
+    function resizeCanvas() {
+      const rect = canvas.parentNode.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      drawCanvas();
+    }
+    
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('slideChanged', (e) => {
+      if (e.detail.id === 'slide-3') {
+        setTimeout(resizeCanvas, 50); // slight delay to guarantee container layout complete
+      }
+    });
+
+    // Initial load updates
+    updateScores();
+  </script>
+</body>
+</html>

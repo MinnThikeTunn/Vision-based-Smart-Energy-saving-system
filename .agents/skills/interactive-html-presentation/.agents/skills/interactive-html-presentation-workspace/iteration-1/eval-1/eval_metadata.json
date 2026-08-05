@@ -1,0 +1,23 @@
+{
+  "eval_id": 1,
+  "eval_name": "gradient-descent-steps",
+  "prompt": "Create an interactive HTML presentation explaining Gradient Descent optimization. It should have a visual canvas showing a 2D loss surface (quadratic curve) and an interactive slider to alter the learning rate (step size), drawing the gradient steps dynamically to show convergence vs divergence.",
+  "assertions": [
+    {
+      "name": "has_slide_deck_structure",
+      "description": "Output contains elements with the class 'slide'."
+    },
+    {
+      "name": "has_canvas_and_slider",
+      "description": "Output contains a canvas and a range input slider."
+    },
+    {
+      "name": "uses_space_grotesk_font",
+      "description": "CSS includes Space Grotesk font."
+    },
+    {
+      "name": "implements_keyboard_navigation",
+      "description": "JavaScript implements keydown navigation for Arrow keys or Space."
+    }
+  ]
+}

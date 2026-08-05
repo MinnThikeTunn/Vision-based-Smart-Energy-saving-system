@@ -1,14 +1,18 @@
-from typing import Any
+from typing import Any, Dict
 import asyncio
 import contextlib
 import json
 import time
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
 from app.decision_engine.device_matrix import DeviceControlMatrix
 from app.decision_engine.state_machine import OccupancyStateMachine, RoomState
 from app.detector.pipeline import VisionPipeline
 from app.device_controller.base import BaseDeviceController
 from app.device_controller.simulation import SimulationController
+from app.analytics.energy_calculator import EnergyCalculator
+from app.analytics.occupancy_forecast import OccupancyForecaster
+from app.telemetry.metrics import get_metrics_registry
 
 router = APIRouter(tags=["websocket"])
 
@@ -17,6 +21,8 @@ _state_machine: OccupancyStateMachine = OccupancyStateMachine()
 _device_matrix: DeviceControlMatrix = DeviceControlMatrix(
     device_timeouts={"light": 180, "fan": 600, "ac": 600}
 )
+_energy_calculator: EnergyCalculator = EnergyCalculator()
+_forecaster: OccupancyForecaster = OccupancyForecaster()
 
 
 class ConnectionManager:
@@ -31,7 +37,7 @@ class ConnectionManager:
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
 
-    async def broadcast(self, message: dict[str, Any]) -> None:
+    async def broadcast(self, message: Dict[str, Any]) -> None:
         for connection in self.active_connections:
             with contextlib.suppress(Exception):
                 await connection.send_json(message)
@@ -44,46 +50,74 @@ def get_device_controller() -> BaseDeviceController:
     return _device_controller
 
 
-def build_telemetry_payload(pipeline: VisionPipeline | None = None) -> dict[str, Any]:
+def get_energy_calculator() -> EnergyCalculator:
+    return _energy_calculator
+
+
+def build_telemetry_payload(pipeline: VisionPipeline | None = None) -> Dict[str, Any]:
     from app.config.loader import load_settings
     try:
         settings = load_settings()
-        # Dynamically sync state machine parameters
         _state_machine.persistence_window_sec = settings.occupancy.persistence_window_sec
         _state_machine.empty_timeout_sec = settings.occupancy.empty_timeout_sec
 
-        # Dynamically sync device matrix timeouts
         device_timeouts = {}
+        wattages = {}
         for device_name, rule in settings.devices.items():
             if rule.enabled:
                 device_timeouts[device_name] = rule.empty_shutdown_timeout_sec
+                wattages[device_name] = rule.rated_wattage
+
         _device_matrix.device_timeouts = device_timeouts
+        _energy_calculator.device_wattages = wattages
+        _energy_calculator.electricity_rate_kwh = settings.analytics.electricity_rate_kwh
+        _energy_calculator.co2_per_kwh_kg = settings.analytics.co2_per_kwh_kg
     except Exception as e:
-        # Fallback if config loading fails
         print(f"Error updating config in telemetry payload: {e}")
 
     raw_count = 0
+    active_zones = None
     if pipeline is not None:
-        _, raw_count = pipeline.get_latest_processed()
+        _, raw_count, active_zones = pipeline.get_latest_processed()
 
     current_time = time.time()
     snapshot = _state_machine.update(raw_count, current_time)
 
-    # Evaluate device control matrix
     current_states = _device_controller.get_device_states()
+    current_telemetry = _device_controller.get_device_telemetry()
+
+    # Evaluate device control matrix with active spatial zones
     actions = _device_matrix.evaluate(
         room_state=snapshot.state,
         empty_duration_sec=snapshot.empty_duration_sec,
         current_states=current_states,
+        active_zones=active_zones,
     )
 
     for action in actions:
-        target_state = "ON" if action["action"] == "TURN_ON" else "OFF"
+        target_state = "ON" if action["action"] == "TURN_ON" else ("DIM" if action["action"] == "DIM" else "OFF")
         _device_controller.set_device_state(
             device_id=action["device_id"],
             state=target_state,
             reason=action["reason"],
         )
+
+    # Calculate real-time energy & ROI analytics
+    energy_metrics = _energy_calculator.update(current_states, current_telemetry)
+
+    # Calculate occupancy forecast
+    forecast = _forecaster.predict_next_hour()
+
+    # Update Prometheus metrics registry
+    fps_val = pipeline.fps_target if pipeline else 30.0
+    metrics_registry = get_metrics_registry()
+    metrics_registry.update_telemetry(
+        fps=fps_val,
+        occupant_count=snapshot.occupant_count,
+        room_status=snapshot.state.value,
+        device_states=current_states,
+        energy_metrics=energy_metrics,
+    )
 
     device_countdowns = {}
     try:
@@ -106,8 +140,11 @@ def build_telemetry_payload(pipeline: VisionPipeline | None = None) -> dict[str,
         "occupancy_status": snapshot.state.value,
         "empty_duration_sec": round(snapshot.empty_duration_sec, 1),
         "seconds_until_empty": round(snapshot.seconds_until_empty, 1),
-        "device_states": _device_controller.get_device_states(),
+        "device_states": current_states,
+        "device_telemetry": current_telemetry,
         "device_countdowns": device_countdowns,
+        "energy_metrics": energy_metrics,
+        "forecast": forecast,
         "event_logs": _device_controller.get_event_logs(limit=20),
     }
 
@@ -118,7 +155,6 @@ async def websocket_status(websocket: WebSocket) -> None:
     from app.api.video_router import get_vision_pipeline
     try:
         while True:
-            # Check for incoming client messages with timeout
             try:
                 data = await asyncio.wait_for(websocket.receive_text(), timeout=1.0)
                 payload = json.loads(data)
@@ -134,7 +170,6 @@ async def websocket_status(websocket: WebSocket) -> None:
             except asyncio.TimeoutError:
                 pass
 
-            # Push telemetry snapshot
             telemetry = build_telemetry_payload(get_vision_pipeline())
             await websocket.send_json(telemetry)
     except WebSocketDisconnect:

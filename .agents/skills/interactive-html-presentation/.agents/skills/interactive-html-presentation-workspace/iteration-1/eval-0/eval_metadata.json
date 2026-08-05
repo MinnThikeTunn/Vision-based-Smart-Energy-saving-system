@@ -1,0 +1,23 @@
+{
+  "eval_id": 0,
+  "eval_name": "self-attention-visualizer",
+  "prompt": "Create an interactive HTML slide deck explaining the Core Self-Attention mechanism from the Transformer architecture ('Attention Is All You Need'). It must include an interactive canvas where the user can adjust key/query vector alignment using a slider and see the attention scores updated visually.",
+  "assertions": [
+    {
+      "name": "has_slide_deck_structure",
+      "description": "Output contains elements with the class 'slide'."
+    },
+    {
+      "name": "has_canvas_and_slider",
+      "description": "Output contains a canvas and a range input slider."
+    },
+    {
+      "name": "uses_space_grotesk_font",
+      "description": "CSS includes Space Grotesk font."
+    },
+    {
+      "name": "implements_keyboard_navigation",
+      "description": "JavaScript implements keydown navigation for Arrow keys or Space."
+    }
+  ]
+}

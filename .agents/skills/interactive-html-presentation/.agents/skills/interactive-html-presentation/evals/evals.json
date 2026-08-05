@@ -1,0 +1,53 @@
+{
+  "skill_name": "interactive-html-presentation",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Create an interactive HTML slide deck explaining the Core Self-Attention mechanism from the Transformer architecture ('Attention Is All You Need'). It must include an interactive canvas where the user can adjust key/query vector alignment using a slider and see the attention scores updated visually.",
+      "expected_output": "A single self-contained HTML file containing slide navigation, Space Grotesk typography, a dark digital-grid theme, and an interactive canvas simulating self-attention scores.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "has_slide_deck_structure",
+          "description": "Output contains elements with the class 'slide'."
+        },
+        {
+          "name": "has_canvas_and_slider",
+          "description": "Output contains a canvas and a range input slider."
+        },
+        {
+          "name": "uses_space_grotesk_font",
+          "description": "CSS includes Space Grotesk font."
+        },
+        {
+          "name": "implements_keyboard_navigation",
+          "description": "JavaScript implements keydown navigation for Arrow keys or Space."
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Create an interactive HTML presentation explaining Gradient Descent optimization. It should have a visual canvas showing a 2D loss surface (quadratic curve) and an interactive slider to alter the learning rate (step size), drawing the gradient steps dynamically to show convergence vs divergence.",
+      "expected_output": "A single self-contained HTML file containing gradient descent slides, interactive controls, and canvas displaying steps down a parabola.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "has_slide_deck_structure",
+          "description": "Output contains elements with the class 'slide'."
+        },
+        {
+          "name": "has_canvas_and_slider",
+          "description": "Output contains a canvas and a range input slider."
+        },
+        {
+          "name": "uses_space_grotesk_font",
+          "description": "CSS includes Space Grotesk font."
+        },
+        {
+          "name": "implements_keyboard_navigation",
+          "description": "JavaScript implements keydown navigation for Arrow keys or Space."
+        }
+      ]
+    }
+  ]
+}
