@@ -15,17 +15,20 @@ class VisionPipeline:
         camera_index: int = 0,
         capture_func: Callable[[], np.ndarray | None] | None = None,
         fps_target: int = 30,
+        anonymize_faces: bool = False,
     ):
         self.detector = detector or DummyDetector()
         self.camera_index = camera_index
         self.custom_capture_func = capture_func
         self.fps_target = fps_target
+        self.anonymize_faces = anonymize_faces
 
         self._lock = threading.Lock()
         self._raw_frame: np.ndarray | None = None
         self._processed_frame: np.ndarray | None = None
         self._occupant_count: int = 0
         self._boxes: list = []
+        self._active_zones: list[str] = []
 
         self.is_running: bool = False
         self._capture_thread: threading.Thread | None = None
@@ -86,6 +89,22 @@ class VisionPipeline:
             sleep_time = max(0.001, frame_interval - elapsed)
             time.sleep(sleep_time)
 
+    def _apply_anonymization(self, frame: np.ndarray, boxes: list) -> np.ndarray:
+        """Apply Gaussian blur over detected person regions for privacy canvas anonymization."""
+        anonymized = frame.copy()
+        h, w = anonymized.shape[:2]
+        for box in boxes:
+            b = box.get("bbox") if isinstance(box, dict) else box
+            if b and len(b) >= 4:
+                x1, y1, x2, y2 = map(int, b[:4])
+                x1, y1 = max(0, x1), max(0, y1)
+                x2, y2 = min(w, x2), min(h, y2)
+                if x2 > x1 and y2 > y1:
+                    roi = anonymized[y1:y2, x1:x2]
+                    ksize = (max(31, (x2 - x1) // 2 | 1), max(31, (y2 - y1) // 2 | 1))
+                    anonymized[y1:y2, x1:x2] = cv2.GaussianBlur(roi, ksize, 30)
+        return anonymized
+
     def _inference_loop(self) -> None:
         while self.is_running:
             frame_to_process = None
@@ -95,21 +114,28 @@ class VisionPipeline:
 
             if frame_to_process is not None:
                 boxes, count, annotated = self.detector.detect(frame_to_process)
+
+                if self.anonymize_faces and len(boxes) > 0:
+                    annotated = self._apply_anonymization(annotated, boxes)
+
+                active_zones = list(set(b["zone"] for b in boxes if isinstance(b, dict) and "zone" in b))
+
                 with self._lock:
                     self._processed_frame = annotated
                     self._occupant_count = count
                     self._boxes = boxes
+                    self._active_zones = active_zones
 
             time.sleep(1.0 / self.fps_target)
 
-    def get_latest_processed(self) -> tuple[np.ndarray | None, int]:
+    def get_latest_processed(self) -> tuple[np.ndarray | None, int, list[str]]:
         with self._lock:
             frame = self._processed_frame.copy() if self._processed_frame is not None else None
-            return frame, self._occupant_count
+            return frame, self._occupant_count, list(self._active_zones)
 
     def generate_mjpeg_stream(self):
         while self.is_running:
-            frame, _ = self.get_latest_processed()
+            frame, _, _ = self.get_latest_processed()
             if frame is None:
                 frame = np.zeros((480, 640, 3), dtype=np.uint8)
                 cv2.putText(

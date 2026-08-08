@@ -11,11 +11,11 @@ def test_default_config_loading(tmp_path):
     assert config.camera.index == 0
     assert config.camera.fps == 30
     assert config.detector.confidence_threshold == 0.5
-    assert config.occupancy.persistence_window_sec == 5
-    assert config.occupancy.empty_timeout_sec == 180
-    assert config.devices["light"].empty_shutdown_timeout_sec == 180
-    assert config.devices["fan"].empty_shutdown_timeout_sec == 600
-    assert config.devices["ac"].empty_shutdown_timeout_sec == 600
+    assert config.occupancy.persistence_window_sec == 2
+    assert config.occupancy.empty_timeout_sec == 5
+    assert config.devices["light"].empty_shutdown_timeout_sec == 5
+    assert config.devices["fan"].empty_shutdown_timeout_sec == 10
+    assert config.devices["ac"].empty_shutdown_timeout_sec == 10
 
 
 def test_config_save_and_reload(tmp_path):

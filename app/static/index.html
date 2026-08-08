@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vision Smart Energy Saver Dashboard</title>
+    <title>Vision Smart Energy Saver v2 — Control & Analytics Center</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -11,12 +11,13 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <!-- FontAwesome & Tailwind -->
+    <!-- FontAwesome, Tailwind & Chart.js -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
       rel="stylesheet"
     />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
       tailwind.config = {
         theme: {
@@ -49,9 +50,9 @@
         border: 1px solid rgba(255, 255, 255, 0.05);
       }
       .glass-panel {
-        background: rgba(24, 24, 27, 0.7);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.04);
+        background: rgba(24, 24, 27, 0.75);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
       }
       .micro-glow-green {
         box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
@@ -59,7 +60,6 @@
       .micro-glow-amber {
         box-shadow: 0 0 20px rgba(245, 158, 11, 0.1);
       }
-      /* Smooth transitions and micro-animations */
       .transition-all-300 {
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
@@ -67,225 +67,242 @@
         transform: translateY(-2px);
         border-color: rgba(255, 255, 255, 0.1);
       }
+      .drawer-overlay {
+        transition: opacity 0.3s ease-in-out;
+      }
+      .drawer-content {
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .canvas-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        cursor: crosshair;
+      }
     </style>
   </head>
   <body class="min-h-screen selection:bg-emerald-500/30 selection:text-emerald-200">
-    <div class="max-w-7xl mx-auto px-6 py-10 space-y-10">
+    <div class="max-w-7xl mx-auto px-6 py-8 space-y-8">
       
-      <!-- Top Header Area with generous whitespace -->
-      <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-zinc-800/60 pb-8">
-        <div class="space-y-2">
-          <h1 class="text-4xl text-white flex items-center gap-3">
+      <!-- Top Navigation & Header Bar -->
+      <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-zinc-800/60 pb-6">
+        <div class="space-y-1">
+          <h1 class="text-3xl text-white flex items-center gap-3">
             <span class="bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent">
-              <i class="fa-solid fa-leaf"></i> Vision Smart Energy
+              <i class="fa-solid fa-leaf"></i> Vision Smart Energy v2
             </span>
           </h1>
-          <p class="text-zinc-400 text-sm tracking-wide font-light">
-            Real-Time AI Room Occupancy & Automated Device Energy Management
+          <p class="text-zinc-400 text-xs tracking-wide font-light">
+            Real-Time AI Occupancy Detection & Automated Energy Automation
           </p>
         </div>
-        <div class="flex items-center gap-4">
+
+        <!-- 2-Page View Switcher & Action Group -->
+        <div class="flex items-center gap-3 flex-wrap">
+          <!-- Page Tabs -->
+          <div class="bg-zinc-950 p-1 rounded-2xl border border-zinc-800/80 flex items-center gap-1">
+            <button
+              id="tab-live"
+              onclick="switchPage('live')"
+              class="px-4 py-2 rounded-xl text-xs font-bold transition-all-300 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-md shadow-emerald-500/10 flex items-center gap-2"
+            >
+              <i class="fa-solid fa-tv"></i> Live Control Center
+            </button>
+            <button
+              id="tab-settings"
+              onclick="switchPage('settings')"
+              class="px-4 py-2 rounded-xl text-xs font-semibold transition-all-300 text-zinc-400 hover:text-zinc-200 flex items-center gap-2"
+            >
+              <i class="fa-solid fa-sliders"></i> Settings & Analytics Hub
+            </button>
+          </div>
+
+          <!-- Audit Trail Slide-over Drawer Trigger -->
+          <button
+            onclick="toggleAuditDrawer(true)"
+            class="px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-sky-300 border border-zinc-800 flex items-center gap-2 transition-all-300"
+          >
+            <i class="fa-solid fa-list-check"></i> Audit Logs
+            <span id="audit-log-badge" class="bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full text-[10px] font-bold">0</span>
+          </button>
+
+          <!-- Connection Status Badge -->
           <div
             id="connection-badge"
-            class="px-4 py-1.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20 flex items-center gap-2 transition-all-300"
+            class="px-3.5 py-1.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20 flex items-center gap-2 transition-all-300"
           >
             <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-            Connecting Status...
+            Connecting...
           </div>
-          <span class="text-xs text-zinc-400 bg-zinc-900 px-4 py-2 rounded-full border border-zinc-800/80 font-medium">
-            Mode: Simulation
-          </span>
         </div>
       </header>
 
-      <!-- Main Layout Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <!-- ================= PAGE 1: LIVE CONTROL CENTER (FRONT PAGE) ================= -->
+      <main id="page-live" class="space-y-8">
         
-        <!-- Left: Live Video Feed & Telemetry (2 Cols) -->
-        <div class="lg:col-span-2 space-y-10">
+        <!-- Main Live Grid: Video Stream + Device Controls -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          <!-- Live Camera Feed (Large rounded-[32px] container) -->
-          <div class="gradient-border rounded-3xl overflow-hidden shadow-2xl transition-all-300 hover-scale">
-            <div class="px-6 py-4 bg-zinc-900/60 border-b border-zinc-800/60 flex justify-between items-center">
-              <h2 class="text-lg font-bold text-zinc-100 flex items-center gap-2.5">
-                <i class="fa-solid fa-video text-emerald-400"></i> Live Camera Feed
-              </h2>
-              <span class="text-xs font-semibold text-zinc-400 bg-zinc-950 px-3 py-1 rounded-full border border-zinc-800/80">
-                YOLOv8 Real-Time Detection
-              </span>
-            </div>
-            <div class="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
-              <img
-                id="video-stream"
-                src="/api/video_feed"
-                alt="Camera Stream"
-                class="w-full h-full object-contain"
-              />
-            </div>
-          </div>
-
-          <!-- Telemetry Cards -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <!-- Card 1: Occupants -->
-            <div class="gradient-border p-6 rounded-3xl transition-all-300 hover-scale micro-glow-green">
-              <div class="text-xs text-zinc-500 font-semibold tracking-wider uppercase">Occupants</div>
-              <div id="stat-occupants" class="text-4xl font-black-heading text-emerald-400 mt-2">
-                0
-              </div>
-              <div class="text-[10px] text-zinc-500 mt-1 font-medium">Live YOLO Count</div>
-            </div>
-
-            <!-- Card 2: Room Status -->
-            <div class="gradient-border p-6 rounded-3xl transition-all-300 hover-scale micro-glow-amber">
-              <div class="text-xs text-zinc-500 font-semibold tracking-wider uppercase">Room Status</div>
-              <div id="stat-status" class="text-2xl font-black-heading text-amber-400 mt-3">
-                Empty
-              </div>
-              <div class="text-[10px] text-zinc-500 mt-2 font-medium font-heading">Occupancy State</div>
-            </div>
-
-            <!-- Card 3: Empty Duration -->
-            <div class="gradient-border p-6 rounded-3xl transition-all-300 hover-scale">
-              <div class="text-xs text-zinc-500 font-semibold tracking-wider uppercase">Empty Duration</div>
-              <div id="stat-empty-dur" class="text-2xl font-black-heading text-sky-400 mt-3">
-                0s
-              </div>
-              <div class="text-[10px] text-zinc-500 mt-2 font-medium">Elapsed Zero Count</div>
-            </div>
-
-            <!-- Card 4: Countdowns -->
-            <div class="gradient-border p-6 rounded-3xl transition-all-300 hover-scale">
-              <div class="text-xs text-zinc-500 font-semibold tracking-wider uppercase">Empty Countdown</div>
-              <div id="stat-countdown" class="text-2xl font-black-heading text-purple-400 mt-2">
-                180s
-              </div>
-              
-              <!-- Individual Device Shutdown Timers -->
-              <div class="mt-3 pt-2.5 border-t border-zinc-800/80 space-y-1 text-[10px] text-zinc-400 font-medium">
-                <div class="flex justify-between">
-                  <span>Light Off:</span>
-                  <span id="timer-light" class="text-emerald-400">180s</span>
+          <!-- Left: Live Spatial Video Feed & Zone Canvas Builder (2 Cols) -->
+          <div class="lg:col-span-2 space-y-6">
+            <div class="gradient-border rounded-3xl overflow-hidden shadow-2xl transition-all-300 hover-scale">
+              <div class="px-6 py-4 bg-zinc-900/60 border-b border-zinc-800/60 flex justify-between items-center flex-wrap gap-3">
+                <h2 class="text-base font-bold text-zinc-100 flex items-center gap-2.5">
+                  <i class="fa-solid fa-video text-emerald-400"></i> Live Spatial Video Feed
+                </h2>
+                <div class="flex items-center gap-2">
+                  <button
+                    id="btn-toggle-heatmap"
+                    onclick="toggleHeatmap()"
+                    class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition-all-300 flex items-center gap-1.5"
+                  >
+                    <i class="fa-solid fa-fire text-amber-400"></i> Heatmap OFF
+                  </button>
+                  <button
+                    onclick="startZoneDrawing()"
+                    class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all-300 flex items-center gap-1.5"
+                  >
+                    <i class="fa-solid fa-draw-polygon"></i> + Draw Zone & Add Device
+                  </button>
                 </div>
-                <div class="flex justify-between">
-                  <span>Fan Off:</span>
-                  <span id="timer-fan" class="text-sky-400">600s</span>
-                </div>
-                <div class="flex justify-between">
-                  <span>AC Off:</span>
-                  <span id="timer-ac" class="text-cyan-400">600s</span>
+              </div>
+              <div class="relative bg-black aspect-video flex items-center justify-center overflow-hidden" id="video-container">
+                <img
+                  id="video-stream"
+                  src="/api/video_feed"
+                  alt="Camera Stream"
+                  class="w-full h-full object-contain"
+                />
+                <!-- Interactive Drawing Overlay Canvas -->
+                <canvas id="zone-canvas" class="canvas-overlay hidden"></canvas>
+              </div>
+            </div>
+
+            <!-- Telemetry Cards Row -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+              <!-- Occupants Card -->
+              <div class="gradient-border p-5 rounded-3xl transition-all-300 hover-scale micro-glow-green">
+                <div class="text-xs text-zinc-500 font-semibold tracking-wider uppercase">Occupants</div>
+                <div id="stat-occupants" class="text-3xl font-black-heading text-emerald-400 mt-2">0</div>
+                <div class="text-[10px] text-zinc-500 mt-1 font-medium">YOLO Person Count</div>
+              </div>
+
+              <!-- Room Status Card -->
+              <div class="gradient-border p-5 rounded-3xl transition-all-300 hover-scale micro-glow-amber">
+                <div class="text-xs text-zinc-500 font-semibold tracking-wider uppercase">Room Status</div>
+                <div id="stat-status" class="text-xl font-black-heading text-amber-400 mt-2">Empty</div>
+                <div class="text-[10px] text-zinc-500 mt-1 font-medium">Occupancy State</div>
+              </div>
+
+              <!-- Empty Duration Card -->
+              <div class="gradient-border p-5 rounded-3xl transition-all-300 hover-scale">
+                <div class="text-xs text-zinc-500 font-semibold tracking-wider uppercase">Empty Duration</div>
+                <div id="stat-empty-dur" class="text-xl font-black-heading text-sky-400 mt-2">0s</div>
+                <div class="text-[10px] text-zinc-500 mt-1 font-medium">Elapsed Zero Count</div>
+              </div>
+
+              <!-- Countdowns Card -->
+              <div class="gradient-border p-5 rounded-3xl transition-all-300 hover-scale">
+                <div class="text-xs text-zinc-500 font-semibold tracking-wider uppercase">Room Countdown</div>
+                <div id="stat-countdown" class="text-xl font-black-heading text-purple-400 mt-2">5s</div>
+                <div class="mt-2 pt-2 border-t border-zinc-800/80 space-y-0.5 text-[10px] text-zinc-400">
+                  <div class="flex justify-between"><span>Light:</span><span id="timer-light" class="text-emerald-400">5s</span></div>
+                  <div class="flex justify-between"><span>Fan:</span><span id="timer-fan" class="text-sky-400">10s</span></div>
+                  <div class="flex justify-between"><span>AC:</span><span id="timer-ac" class="text-cyan-400">10s</span></div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Event Log Audit Table -->
-          <div class="gradient-border rounded-3xl overflow-hidden shadow-xl">
-            <div class="px-6 py-4 bg-zinc-900/60 border-b border-zinc-800/60 flex justify-between items-center">
-              <h2 class="text-lg font-bold text-zinc-100 flex items-center gap-2.5">
-                <i class="fa-solid fa-list-check text-sky-400"></i> Event Audit Log
-              </h2>
-              <span class="text-xs text-zinc-500 font-medium">Recent Automation Log</span>
-            </div>
-            <div class="p-6 max-h-72 overflow-y-auto">
-              <table class="w-full text-left text-xs text-zinc-300">
-                <thead class="text-zinc-500 font-semibold border-b border-zinc-800 pb-3">
-                  <tr>
-                    <th class="pb-3 uppercase tracking-wider">Time</th>
-                    <th class="pb-3 uppercase tracking-wider">Device</th>
-                    <th class="pb-3 uppercase tracking-wider">Action</th>
-                    <th class="pb-3 uppercase tracking-wider">Reason</th>
-                  </tr>
-                </thead>
-                <tbody id="event-log-rows" class="divide-y divide-zinc-800/40">
-                  <tr>
-                    <td colspan="4" class="py-6 text-center text-zinc-600 font-medium">
-                      No events recorded yet.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+          <!-- Right: Virtual Devices & Dynamic Devices (1 Col) -->
+          <div class="space-y-6">
+            <div class="gradient-border rounded-3xl p-6 shadow-xl space-y-6">
+              <div class="flex justify-between items-center">
+                <h2 class="text-base font-bold text-zinc-100 flex items-center gap-2.5">
+                  <i class="fa-solid fa-plug text-amber-400"></i> Virtual Devices & Power Ramps
+                </h2>
+                <button
+                  onclick="resetToDefaultDevices()"
+                  class="text-[10px] text-zinc-500 hover:text-zinc-300 underline"
+                >
+                  Reset Defaults
+                </button>
+              </div>
+
+              <!-- Empty State Notification if zero devices -->
+              <div id="zero-device-notice" class="hidden p-6 bg-zinc-950/60 rounded-2xl border border-dashed border-zinc-800 text-center space-y-3">
+                <div class="p-3 bg-emerald-500/10 rounded-full w-12 h-12 mx-auto flex items-center justify-center text-emerald-400">
+                  <i class="fa-solid fa-plus text-xl"></i>
+                </div>
+                <div class="text-xs font-bold text-zinc-200">Zero Active Devices Configured</div>
+                <p class="text-[11px] text-zinc-500">
+                  Click below to draw a spatial zone on the camera feed and bind a new smart device.
+                </p>
+                <button
+                  onclick="startZoneDrawing()"
+                  class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all-300"
+                >
+                  + Create First Zone & Device
+                </button>
+              </div>
+
+              <!-- Device Container -->
+              <div id="device-list-container" class="space-y-4">
+                <!-- Dynamically populated device cards -->
+              </div>
             </div>
           </div>
         </div>
+      </main>
 
-        <!-- Right Side: Device Controls & System Settings (1 Col) -->
-        <div class="space-y-10">
-          
-          <!-- Virtual Device Controls Card -->
-          <div class="gradient-border rounded-3xl p-6 shadow-xl space-y-6">
-            <h2 class="text-lg font-bold text-zinc-100 flex items-center gap-2.5">
-              <i class="fa-solid fa-plug text-amber-400"></i> Virtual Devices
-            </h2>
-            <div class="space-y-4">
-              <!-- Light Device Box -->
-              <div class="flex items-center justify-between p-4 bg-zinc-950/40 rounded-2xl border border-zinc-800/50 hover:border-zinc-800 transition-all-300">
-                <div class="flex items-center gap-3">
-                  <div id="device-icon-light" class="p-3 bg-amber-500/10 rounded-xl text-amber-400 transition-all-300">
-                    <i class="fa-solid fa-lightbulb text-xl"></i>
-                  </div>
-                  <div>
-                    <div class="font-bold text-sm text-zinc-200">Light</div>
-                    <div id="device-badge-light" class="text-xs text-zinc-500 font-medium transition-all-300">
-                      State: OFF
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onclick="toggleDevice('light')"
-                  class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold rounded-xl text-zinc-200 hover:text-white transition-all-300"
-                >
-                  Toggle
-                </button>
-              </div>
 
-              <!-- Fan Device Box -->
-              <div class="flex items-center justify-between p-4 bg-zinc-950/40 rounded-2xl border border-zinc-800/50 hover:border-zinc-800 transition-all-300">
-                <div class="flex items-center gap-3">
-                  <div id="device-icon-fan" class="p-3 bg-sky-500/10 rounded-xl text-sky-400 transition-all-300">
-                    <i class="fa-solid fa-fan text-xl animate-spin-slow"></i>
-                  </div>
-                  <div>
-                    <div class="font-bold text-sm text-zinc-200">Fan</div>
-                    <div id="device-badge-fan" class="text-xs text-zinc-500 font-medium transition-all-300">
-                      State: OFF
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onclick="toggleDevice('fan')"
-                  class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold rounded-xl text-zinc-200 hover:text-white transition-all-300"
-                >
-                  Toggle
-                </button>
-              </div>
-
-              <!-- AC Device Box -->
-              <div class="flex items-center justify-between p-4 bg-zinc-950/40 rounded-2xl border border-zinc-800/50 hover:border-zinc-800 transition-all-300">
-                <div class="flex items-center gap-3">
-                  <div id="device-icon-ac" class="p-3 bg-cyan-500/10 rounded-xl text-cyan-400 transition-all-300">
-                    <i class="fa-solid fa-snowflake text-xl"></i>
-                  </div>
-                  <div>
-                    <div class="font-bold text-sm text-zinc-200">Air Conditioner</div>
-                    <div id="device-badge-ac" class="text-xs text-zinc-500 font-medium transition-all-300">
-                      State: OFF
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onclick="toggleDevice('ac')"
-                  class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold rounded-xl text-zinc-200 hover:text-white transition-all-300"
-                >
-                  Toggle
-                </button>
-              </div>
-            </div>
+      <!-- ================= PAGE 2: SETTINGS & ANALYTICS HUB ================= -->
+      <main id="page-settings" class="hidden space-y-8">
+        
+        <!-- Energy Savings & Power Telemetry Bento Boxes -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+          <div class="gradient-border p-5 rounded-3xl transition-all-300 micro-glow-green">
+            <div class="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">Live Power Draw</div>
+            <div id="stat-power-draw" class="text-2xl font-black-heading text-emerald-400 mt-1">0.0 W</div>
+            <div class="text-[10px] text-zinc-500 mt-1">Baseline: <span id="stat-baseline-power">1305 W</span></div>
           </div>
+          <div class="gradient-border p-5 rounded-3xl transition-all-300">
+            <div class="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">Cumulative Saved</div>
+            <div id="stat-saved-kwh" class="text-2xl font-black-heading text-sky-400 mt-1">0.0000 kWh</div>
+            <div class="text-[10px] text-zinc-500 mt-1">CO2 Prevented: <span id="stat-saved-co2">0.00 kg</span></div>
+          </div>
+          <div class="gradient-border p-5 rounded-3xl transition-all-300">
+            <div class="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">Financial Saved ($)</div>
+            <div id="stat-saved-cost" class="text-2xl font-black-heading text-teal-300 mt-1">$0.0000</div>
+            <div class="text-[10px] text-zinc-500 mt-1">Tariff Rate: $0.15 / kWh</div>
+          </div>
+          <div class="gradient-border p-5 rounded-3xl transition-all-300 micro-glow-amber">
+            <div class="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider">Efficiency Gain</div>
+            <div id="stat-efficiency" class="text-2xl font-black-heading text-amber-400 mt-1">0.0%</div>
+            <div class="text-[10px] text-zinc-500 mt-1">AI Forecast: <span id="stat-forecast" class="text-amber-300">Normal</span></div>
+          </div>
+        </div>
 
-          <!-- Configuration Settings Card -->
+        <!-- Real-Time Chart.js Power Telemetry Graph -->
+        <div class="gradient-border p-6 rounded-3xl shadow-xl space-y-4">
+          <div class="flex justify-between items-center">
+            <h2 class="text-sm font-bold text-zinc-100 flex items-center gap-2">
+              <i class="fa-solid fa-chart-area text-sky-400"></i> Real-Time Power Consumption vs Baseline (Watts)
+            </h2>
+            <span class="text-[10px] text-zinc-500">Live 30s Sliding Window</span>
+          </div>
+          <div class="h-48 w-full">
+            <canvas id="powerChart"></canvas>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- Configuration & Rule Parameters -->
           <div class="gradient-border rounded-3xl p-6 shadow-xl space-y-6">
             <h2 class="text-lg font-bold text-zinc-100 flex items-center gap-2.5">
-              <i class="fa-solid fa-sliders text-emerald-400"></i> Settings & Rules
+              <i class="fa-solid fa-sliders text-emerald-400"></i> Settings & Rule Configurator
             </h2>
             <form id="config-form" onsubmit="saveConfig(event)" class="space-y-4 text-xs">
               <div class="grid grid-cols-2 gap-4">
@@ -319,35 +336,25 @@
                 />
               </div>
 
-              <div class="border-t border-zinc-800/80 my-4 pt-4 space-y-4">
-                <span class="block text-zinc-400 font-bold tracking-wide text-xs">Device Shutdown Timeouts</span>
-                
-                <div>
-                  <label class="block text-zinc-500 font-semibold uppercase tracking-wider mb-1.5">Light Shutdown Timeout (s)</label>
-                  <input
-                    type="number"
-                    id="cfg-light-timeout"
-                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-emerald-500 transition-all-300"
-                  />
+              <!-- Device Shutdown Timeouts -->
+              <div class="border-t border-zinc-800/80 my-4 pt-4 space-y-3">
+                <span class="block text-zinc-400 font-bold tracking-wide text-xs">Device Shutdown Timeouts (s)</span>
+                <div class="grid grid-cols-3 gap-3" id="shutdown-timeouts-container">
+                  <!-- Generated dynamically -->
                 </div>
-                
-                <div>
-                  <label class="block text-zinc-500 font-semibold uppercase tracking-wider mb-1.5">Fan Shutdown Timeout (s)</label>
-                  <input
-                    type="number"
-                    id="cfg-fan-timeout"
-                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-emerald-500 transition-all-300"
-                  />
-                </div>
+              </div>
 
-                <div>
-                  <label class="block text-zinc-500 font-semibold uppercase tracking-wider mb-1.5">AC Shutdown Timeout (s)</label>
-                  <input
-                    type="number"
-                    id="cfg-ac-timeout"
-                    class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200 focus:outline-none focus:border-emerald-500 transition-all-300"
-                  />
-                </div>
+              <!-- Privacy Architecture Toggles -->
+              <div class="border-t border-zinc-800/80 my-4 pt-4 space-y-3">
+                <span class="block text-zinc-400 font-bold tracking-wide text-xs">Privacy Architecture</span>
+                <label class="flex items-center gap-3 text-zinc-300 cursor-pointer">
+                  <input type="checkbox" id="cfg-headless" class="rounded bg-zinc-950 border-zinc-800 text-emerald-500 focus:ring-0" />
+                  <span>Headless Automation Mode (Disable Video Feed Stream)</span>
+                </label>
+                <label class="flex items-center gap-3 text-zinc-300 cursor-pointer">
+                  <input type="checkbox" id="cfg-anonymize" class="rounded bg-zinc-950 border-zinc-800 text-emerald-500 focus:ring-0" />
+                  <span>Canvas Anonymization (Real-Time Face/Person Gaussian Blur)</span>
+                </label>
               </div>
 
               <button
@@ -358,13 +365,355 @@
               </button>
             </form>
           </div>
+
+          <!-- Analytics, Reports & Observability Exports -->
+          <div class="space-y-6">
+            <!-- Reports & Observability Card -->
+            <div class="gradient-border rounded-3xl p-6 shadow-xl space-y-5">
+              <h2 class="text-lg font-bold text-zinc-100 flex items-center gap-2.5">
+                <i class="fa-solid fa-file-export text-sky-400"></i> Facilities Reports & Observability
+              </h2>
+              <div class="space-y-3">
+                <a
+                  href="/api/reports/download"
+                  target="_blank"
+                  class="w-full p-4 bg-zinc-950/60 border border-zinc-800/60 rounded-2xl flex items-center justify-between hover:border-emerald-500/50 transition-all-300 group"
+                >
+                  <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400">
+                      <i class="fa-solid fa-file-csv text-lg"></i>
+                    </div>
+                    <div>
+                      <div class="font-bold text-xs text-zinc-200 group-hover:text-emerald-300">Facilities Summary Report (CSV)</div>
+                      <div class="text-[10px] text-zinc-500">Download weekly energy savings, power draw & KPIs</div>
+                    </div>
+                  </div>
+                  <i class="fa-solid fa-download text-zinc-600 group-hover:text-emerald-400"></i>
+                </a>
+
+                <a
+                  href="/api/reports/iot_handoff"
+                  target="_blank"
+                  class="w-full p-4 bg-zinc-950/60 border border-zinc-800/60 rounded-2xl flex items-center justify-between hover:border-sky-500/50 transition-all-300 group"
+                >
+                  <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-sky-500/10 rounded-xl text-sky-400">
+                      <i class="fa-solid fa-microchip text-lg"></i>
+                    </div>
+                    <div>
+                      <div class="font-bold text-xs text-zinc-200 group-hover:text-sky-300">IoT Hardware Handoff Report (.md)</div>
+                      <div class="text-[10px] text-zinc-500">API payload schemas, ESP32 pinouts & relay specs</div>
+                    </div>
+                  </div>
+                  <i class="fa-solid fa-download text-zinc-600 group-hover:text-sky-400"></i>
+                </a>
+
+                <a
+                  href="/metrics"
+                  target="_blank"
+                  class="w-full p-4 bg-zinc-950/60 border border-zinc-800/60 rounded-2xl flex items-center justify-between hover:border-purple-500/50 transition-all-300 group"
+                >
+                  <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-purple-500/10 rounded-xl text-purple-400">
+                      <i class="fa-solid fa-chart-line text-lg"></i>
+                    </div>
+                    <div>
+                      <div class="font-bold text-xs text-zinc-200 group-hover:text-purple-300">Prometheus OpenMetrics Endpoint</div>
+                      <div class="text-[10px] text-zinc-500">Scrape live vision FPS, power draw & occupant gauges</div>
+                    </div>
+                  </div>
+                  <i class="fa-solid fa-arrow-up-right-from-square text-zinc-600 group-hover:text-purple-400"></i>
+                </a>
+              </div>
+            </div>
+
+            <!-- AI Predictive Occupancy Forecasting Card -->
+            <div class="gradient-border rounded-3xl p-6 shadow-xl space-y-4">
+              <h2 class="text-lg font-bold text-zinc-100 flex items-center gap-2.5">
+                <i class="fa-solid fa-brain text-amber-400"></i> AI Occupancy Forecasting
+              </h2>
+              <div class="p-4 bg-zinc-950/40 rounded-2xl border border-zinc-800/50 space-y-2">
+                <div class="flex justify-between items-center">
+                  <span class="text-xs text-zinc-400">Target Hour Arrival Probability:</span>
+                  <span id="forecast-prob" class="text-sm font-bold text-amber-400">85%</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-xs text-zinc-400">HVAC Pre-warm Action:</span>
+                  <span id="forecast-status" class="text-xs font-semibold text-emerald-400">Recommended</span>
+                </div>
+                <p id="forecast-reason" class="text-[10px] text-zinc-500 leading-relaxed pt-1">
+                  High probability of occupant arrival detected for peak morning usage window.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+    </div>
+
+    <!-- ================= MODAL: CREATE ZONE & BIND DEVICE ================= -->
+    <div id="create-zone-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-zinc-900 border border-zinc-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl">
+        <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
+          <h3 class="text-base font-bold text-zinc-100 flex items-center gap-2">
+            <i class="fa-solid fa-draw-polygon text-emerald-400"></i> Bind Spatial Zone & Smart Device
+          </h3>
+          <button onclick="cancelZoneDrawing()" class="text-zinc-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form onsubmit="saveNewZoneAndDevice(event)" class="space-y-4 text-xs">
+          <div>
+            <label class="block text-zinc-400 font-semibold mb-1">Spatial Zone Name</label>
+            <input type="text" id="modal-zone-name" placeholder="e.g. Workstation 1" required class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200" />
+          </div>
+          <div>
+            <label class="block text-zinc-400 font-semibold mb-1">Device ID / Name</label>
+            <input type="text" id="modal-device-id" placeholder="e.g. desk_lamp" required class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-zinc-400 font-semibold mb-1">Rated Power (Watts)</label>
+              <input type="number" id="modal-wattage" value="50" required class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200" />
+            </div>
+            <div>
+              <label class="block text-zinc-400 font-semibold mb-1">Shutdown Timeout (s)</label>
+              <input type="number" id="modal-timeout" value="10" required class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200" />
+            </div>
+          </div>
+          <div class="pt-2 flex justify-end gap-3">
+            <button type="button" onclick="cancelZoneDrawing()" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold rounded-xl">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20">Save Zone & Device</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================= SLIDE-OVER AUDIT TRAIL DRAWER ================= -->
+    <div id="audit-drawer-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden drawer-overlay" onclick="toggleAuditDrawer(false)">
+      <div class="fixed inset-y-0 right-0 max-w-full flex">
+        <div class="w-screen max-w-md bg-zinc-900 border-l border-zinc-800 shadow-2xl p-6 space-y-6 flex flex-col drawer-content" onclick="event.stopPropagation()">
+          <div class="flex justify-between items-center border-b border-zinc-800 pb-4">
+            <h2 class="text-base font-bold text-zinc-100 flex items-center gap-2.5">
+              <i class="fa-solid fa-list-check text-sky-400"></i> Event Audit Trail Log
+            </h2>
+            <button onclick="toggleAuditDrawer(false)" class="p-2 text-zinc-400 hover:text-white rounded-lg transition-all-300">
+              <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+          </div>
+          <div class="flex-1 overflow-y-auto pr-1">
+            <table class="w-full text-left text-xs text-zinc-300">
+              <thead class="text-zinc-500 font-semibold border-b border-zinc-800 pb-2">
+                <tr>
+                  <th class="pb-2">Time</th>
+                  <th class="pb-2">Device</th>
+                  <th class="pb-2">Action</th>
+                  <th class="pb-2">Reason</th>
+                </tr>
+              </thead>
+              <tbody id="event-log-rows" class="divide-y divide-zinc-800/40">
+                <tr>
+                  <td colspan="4" class="py-6 text-center text-zinc-600">No events logged yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
 
     <script>
       let ws;
-      let currentDeviceStates = { light: "OFF", fan: "OFF", ac: "OFF" };
+      let currentDeviceStates = {};
+      let powerChart;
+      let isHeatmapActive = false;
+
+      let isDrawing = false;
+      let startX, startY, endX, endY;
+      let drawnBbox = [0, 0, 1, 1];
+
+      function initChart() {
+        const ctx = document.getElementById('powerChart').getContext('2d');
+        powerChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: Array(30).fill(''),
+            datasets: [
+              {
+                label: 'Actual Draw (W)',
+                data: Array(30).fill(0),
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2,
+              },
+              {
+                label: 'Baseline (W)',
+                data: Array(30).fill(1305),
+                borderColor: '#ef4444',
+                borderDash: [5, 5],
+                fill: false,
+                tension: 0.1,
+                borderWidth: 1.5,
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            scales: {
+              x: { display: false },
+              y: {
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { color: '#a1a1aa', font: { size: 10 } }
+              }
+            },
+            plugins: {
+              legend: { labels: { color: '#f4f4f5', font: { size: 11 } } }
+            }
+          }
+        });
+      }
+
+      function switchPage(page) {
+        const liveMain = document.getElementById("page-live");
+        const settingsMain = document.getElementById("page-settings");
+        const tabLive = document.getElementById("tab-live");
+        const tabSettings = document.getElementById("tab-settings");
+
+        if (page === 'live') {
+          liveMain.classList.remove("hidden");
+          settingsMain.classList.add("hidden");
+          tabLive.className = "px-4 py-2 rounded-xl text-xs font-bold transition-all-300 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-md shadow-emerald-500/10 flex items-center gap-2";
+          tabSettings.className = "px-4 py-2 rounded-xl text-xs font-semibold transition-all-300 text-zinc-400 hover:text-zinc-200 flex items-center gap-2";
+        } else {
+          liveMain.classList.add("hidden");
+          settingsMain.classList.remove("hidden");
+          tabSettings.className = "px-4 py-2 rounded-xl text-xs font-bold transition-all-300 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-md shadow-emerald-500/10 flex items-center gap-2";
+          tabLive.className = "px-4 py-2 rounded-xl text-xs font-semibold transition-all-300 text-zinc-400 hover:text-zinc-200 flex items-center gap-2";
+        }
+      }
+
+      function toggleAuditDrawer(show) {
+        const backdrop = document.getElementById("audit-drawer-backdrop");
+        if (show) backdrop.classList.remove("hidden");
+        else backdrop.classList.add("hidden");
+      }
+
+      function toggleHeatmap() {
+        isHeatmapActive = !isHeatmapActive;
+        const btn = document.getElementById("btn-toggle-heatmap");
+        if (isHeatmapActive) {
+          btn.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-zinc-950 border border-amber-400 shadow-lg shadow-amber-500/20 transition-all-300 flex items-center gap-1.5";
+          btn.innerHTML = `<i class="fa-solid fa-fire text-zinc-950"></i> Heatmap ON`;
+        } else {
+          btn.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition-all-300 flex items-center gap-1.5";
+          btn.innerHTML = `<i class="fa-solid fa-fire text-amber-400"></i> Heatmap OFF`;
+        }
+      }
+
+      function startZoneDrawing() {
+        const canvas = document.getElementById("zone-canvas");
+        const container = document.getElementById("video-container");
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        canvas.classList.remove("hidden");
+
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        canvas.onmousedown = (e) => {
+          const rect = canvas.getBoundingClientRect();
+          startX = e.clientX - rect.left;
+          startY = e.clientY - rect.top;
+          isDrawing = true;
+        };
+
+        canvas.onmousemove = (e) => {
+          if (!isDrawing) return;
+          const rect = canvas.getBoundingClientRect();
+          endX = e.clientX - rect.left;
+          endY = e.clientY - rect.top;
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.strokeStyle = '#10b981';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 6]);
+          ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+        };
+
+        canvas.onmouseup = (e) => {
+          if (!isDrawing) return;
+          isDrawing = false;
+          const rect = canvas.getBoundingClientRect();
+          endX = e.clientX - rect.left;
+          endY = e.clientY - rect.top;
+
+          const w = canvas.width;
+          const h = canvas.height;
+          const x_min = Math.min(startX, endX) / w;
+          const y_min = Math.min(startY, endY) / h;
+          const x_max = Math.max(startX, endX) / w;
+          const y_max = Math.max(startY, endY) / h;
+
+          drawnBbox = [
+            parseFloat(x_min.toFixed(2)),
+            parseFloat(y_min.toFixed(2)),
+            parseFloat(x_max.toFixed(2)),
+            parseFloat(y_max.toFixed(2))
+          ];
+
+          document.getElementById("create-zone-modal").classList.remove("hidden");
+        };
+      }
+
+      function cancelZoneDrawing() {
+        document.getElementById("create-zone-modal").classList.add("hidden");
+        const canvas = document.getElementById("zone-canvas");
+        canvas.classList.add("hidden");
+      }
+
+      async function saveNewZoneAndDevice(e) {
+        e.preventDefault();
+        const zoneName = document.getElementById("modal-zone-name").value;
+        const deviceId = document.getElementById("modal-device-id").value.toLowerCase().replace(/\s+/g, '_');
+        const wattage = parseFloat(document.getElementById("modal-wattage").value);
+        const timeout = parseInt(document.getElementById("modal-timeout").value);
+
+        try {
+          const res = await fetch("/api/config");
+          const cfg = await res.json();
+
+          if (!cfg.devices) cfg.devices = {};
+          cfg.devices[deviceId] = {
+            enabled: true,
+            empty_shutdown_timeout_sec: timeout,
+            rated_wattage: wattage
+          };
+
+          if (!cfg.spatial_zones) cfg.spatial_zones = [];
+          cfg.spatial_zones.push({
+            name: zoneName,
+            bbox: drawnBbox,
+            assigned_devices: [deviceId]
+          });
+
+          await fetch("/api/config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(cfg)
+          });
+
+          localStorage.setItem("custom_user_devices", JSON.stringify(cfg.devices));
+
+          cancelZoneDrawing();
+          loadConfig();
+          alert(`Successfully created ${zoneName} and bound device ${deviceId}!`);
+        } catch (err) {
+          alert("Failed to save new zone: " + err);
+        }
+      }
 
       function connectWebSocket() {
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -373,8 +722,7 @@
 
         ws.onopen = () => {
           const badge = document.getElementById("connection-badge");
-          badge.className =
-            "px-4 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 flex items-center gap-2";
+          badge.className = "px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 flex items-center gap-2";
           badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Connected`;
         };
 
@@ -385,97 +733,127 @@
 
         ws.onclose = () => {
           const badge = document.getElementById("connection-badge");
-          badge.className =
-            "px-4 py-1.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/20 flex items-center gap-2";
+          badge.className = "px-3.5 py-1.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/20 flex items-center gap-2";
           badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span> Disconnected`;
           setTimeout(connectWebSocket, 3000);
         };
       }
 
       function updateDashboard(data) {
-        document.getElementById("stat-occupants").innerText =
-          data.occupant_count;
+        document.getElementById("stat-occupants").innerText = data.occupant_count;
 
         const statusElem = document.getElementById("stat-status");
         statusElem.innerText = data.occupancy_status;
-        statusElem.className =
-          data.occupancy_status === "Occupied"
-            ? "text-2xl font-black-heading text-emerald-400 mt-3"
-            : "text-2xl font-black-heading text-amber-400 mt-3";
+        statusElem.className = data.occupancy_status === "Occupied"
+          ? "text-xl font-black-heading text-emerald-400 mt-2"
+          : "text-xl font-black-heading text-amber-400 mt-2";
 
-        document.getElementById("stat-empty-dur").innerText =
-          `${data.empty_duration_sec}s`;
-        document.getElementById("stat-countdown").innerText =
-          `${data.seconds_until_empty}s`;
+        document.getElementById("stat-empty-dur").innerText = `${data.empty_duration_sec}s`;
+        document.getElementById("stat-countdown").innerText = `${data.seconds_until_empty}s`;
 
-        // Update individual device countdowns
-        if (data.device_countdowns) {
-          if (data.device_countdowns.light !== undefined) {
-            document.getElementById("timer-light").innerText = `${data.device_countdowns.light}s`;
-          }
-          if (data.device_countdowns.fan !== undefined) {
-            document.getElementById("timer-fan").innerText = `${data.device_countdowns.fan}s`;
-          }
-          if (data.device_countdowns.ac !== undefined) {
-            document.getElementById("timer-ac").innerText = `${data.device_countdowns.ac}s`;
+        if (data.energy_metrics) {
+          const currentPwr = data.energy_metrics.current_power_watts;
+          const baselinePwr = data.energy_metrics.baseline_power_watts;
+
+          document.getElementById("stat-power-draw").innerText = `${currentPwr} W`;
+          document.getElementById("stat-baseline-power").innerText = `${baselinePwr} W`;
+          document.getElementById("stat-saved-kwh").innerText = `${data.energy_metrics.saved_kwh} kWh`;
+          document.getElementById("stat-saved-co2").innerText = `${data.energy_metrics.saved_co2_kg} kg`;
+          document.getElementById("stat-saved-cost").innerText = `$${data.energy_metrics.saved_cost_usd}`;
+          document.getElementById("stat-efficiency").innerText = `${data.energy_metrics.energy_efficiency_pct}%`;
+
+          if (powerChart) {
+            powerChart.data.datasets[0].data.shift();
+            powerChart.data.datasets[0].data.push(currentPwr);
+
+            powerChart.data.datasets[1].data.shift();
+            powerChart.data.datasets[1].data.push(baselinePwr);
+            powerChart.update('none');
           }
         }
 
-        // Update Device states and badging/icons
+        if (data.forecast) {
+          document.getElementById("stat-forecast").innerText = data.forecast.prewarm_hvac_recommended ? "Pre-warm Active" : "Normal";
+          document.getElementById("forecast-prob").innerText = `${Math.round(data.forecast.predicted_occupancy_probability * 100)}%`;
+          document.getElementById("forecast-status").innerText = data.forecast.prewarm_hvac_recommended ? "Recommended" : "Not Required";
+          document.getElementById("forecast-reason").innerText = data.forecast.reason;
+        }
+
+        if (data.device_countdowns) {
+          if (data.device_countdowns.light !== undefined) document.getElementById("timer-light").innerText = `${data.device_countdowns.light}s`;
+          if (data.device_countdowns.fan !== undefined) document.getElementById("timer-fan").innerText = `${data.device_countdowns.fan}s`;
+          if (data.device_countdowns.ac !== undefined) document.getElementById("timer-ac").innerText = `${data.device_countdowns.ac}s`;
+        }
+
         if (data.device_states) {
           currentDeviceStates = data.device_states;
-          for (const [dev, state] of Object.entries(data.device_states)) {
-            const badge = document.getElementById(`device-badge-${dev}`);
-            const iconBox = document.getElementById(`device-icon-${dev}`);
-            if (badge) {
-              badge.innerText = `State: ${state}`;
-              if (state === "ON") {
-                badge.className = "text-xs text-emerald-400 font-semibold";
-                if (dev === "light") {
-                  iconBox.className = "p-3 bg-amber-500/20 rounded-xl text-amber-300 shadow-md shadow-amber-500/10";
-                } else if (dev === "fan") {
-                  iconBox.className = "p-3 bg-sky-500/20 rounded-xl text-sky-300 shadow-md shadow-sky-500/10";
-                  // Make fan icon spin faster when ON
-                  iconBox.querySelector('i').className = "fa-solid fa-fan text-xl animate-spin";
-                } else if (dev === "ac") {
-                  iconBox.className = "p-3 bg-cyan-500/20 rounded-xl text-cyan-300 shadow-md shadow-cyan-500/10";
-                }
-              } else {
-                badge.className = "text-xs text-zinc-500 font-medium";
-                if (dev === "light") {
-                  iconBox.className = "p-3 bg-zinc-800/40 rounded-xl text-zinc-600 border border-zinc-800/40";
-                } else if (dev === "fan") {
-                  iconBox.className = "p-3 bg-zinc-800/40 rounded-xl text-zinc-600 border border-zinc-800/40";
-                  iconBox.querySelector('i').className = "fa-solid fa-fan text-xl";
-                } else if (dev === "ac") {
-                  iconBox.className = "p-3 bg-zinc-800/40 rounded-xl text-zinc-600 border border-zinc-800/40";
-                }
-              }
-            }
-          }
+          renderDeviceList(data.device_states, data.device_telemetry);
         }
 
         if (data.event_logs) {
           renderEventLogs(data.event_logs);
+          document.getElementById("audit-log-badge").innerText = data.event_logs.length;
         }
+      }
+
+      function renderDeviceList(deviceStates, deviceTelemetry) {
+        const container = document.getElementById("device-list-container");
+        const zeroNotice = document.getElementById("zero-device-notice");
+        const keys = Object.keys(deviceStates);
+
+        if (keys.length === 0) {
+          container.innerHTML = "";
+          zeroNotice.classList.remove("hidden");
+          return;
+        }
+
+        zeroNotice.classList.add("hidden");
+        let html = "";
+        for (const dev of keys) {
+          const state = deviceStates[dev];
+          const pwr = deviceTelemetry && deviceTelemetry[dev] ? deviceTelemetry[dev].power_pct : 0;
+          const isOn = state === "ON" || state === "DIM";
+
+          html += `
+            <div class="flex items-center justify-between p-4 bg-zinc-950/40 rounded-2xl border border-zinc-800/50 hover:border-zinc-800 transition-all-300">
+              <div class="flex items-center gap-3">
+                <div class="p-3 ${isOn ? 'bg-emerald-500/20 text-emerald-300' : 'bg-zinc-800/40 text-zinc-600'} rounded-xl transition-all-300">
+                  <i class="fa-solid fa-plug text-xl"></i>
+                </div>
+                <div>
+                  <div class="font-bold text-sm text-zinc-200 capitalize">${dev.replace(/_/g, ' ')}</div>
+                  <div class="text-xs ${isOn ? 'text-emerald-400' : 'text-zinc-500'} font-medium mt-0.5">
+                    State: ${state} (${pwr}%)
+                  </div>
+                </div>
+              </div>
+              <button
+                onclick="toggleDevice('${dev}')"
+                class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold rounded-xl text-zinc-200 hover:text-white transition-all-300"
+              >
+                Toggle
+              </button>
+            </div>
+          `;
+        }
+        container.innerHTML = html;
       }
 
       function renderEventLogs(logs) {
         const tbody = document.getElementById("event-log-rows");
         if (!logs || logs.length === 0) {
-          tbody.innerHTML =
-            '<tr><td colspan="4" class="py-6 text-center text-zinc-600 font-medium">No events recorded yet.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-zinc-600">No events logged yet.</td></tr>';
           return;
         }
 
         tbody.innerHTML = logs
           .map(
             (log) => `
-        <tr class="hover:bg-zinc-800/20 transition-all-300">
-          <td class="py-3 text-zinc-500 font-mono">${new Date(log.timestamp).toLocaleTimeString()}</td>
-          <td class="py-3 font-semibold capitalize text-zinc-200">${log.device_id}</td>
-          <td class="py-3 font-bold ${log.action === "ON" ? "text-emerald-400" : "text-rose-400"}">${log.action}</td>
-          <td class="py-3 text-zinc-400 font-light">${log.reason}</td>
+        <tr class="hover:bg-zinc-800/30 transition-all-300">
+          <td class="py-3 text-zinc-500 font-mono text-[11px]">${new Date(log.timestamp).toLocaleTimeString()}</td>
+          <td class="py-3 font-semibold capitalize text-zinc-200 text-xs">${log.device_id}</td>
+          <td class="py-3 font-bold text-xs ${log.action === "ON" ? "text-emerald-400" : "text-rose-400"}">${log.action}</td>
+          <td class="py-3 text-zinc-400 font-light text-[11px]">${log.reason}</td>
         </tr>
       `,
           )
@@ -485,13 +863,29 @@
       function toggleDevice(deviceId) {
         if (!ws || ws.readyState !== WebSocket.OPEN) return;
         const nextState = currentDeviceStates[deviceId] === "ON" ? "OFF" : "ON";
-        ws.send(
-          JSON.stringify({
-            type: "TOGGLE_DEVICE",
-            device_id: deviceId,
-            state: nextState,
-          }),
-        );
+        ws.send(JSON.stringify({ type: "TOGGLE_DEVICE", device_id: deviceId, state: nextState }));
+      }
+
+      async function resetToDefaultDevices() {
+        try {
+          const res = await fetch("/api/config");
+          const cfg = await res.json();
+
+          cfg.devices = {
+            light: { enabled: true, empty_shutdown_timeout_sec: 5, rated_wattage: 40.0 },
+            fan: { enabled: true, empty_shutdown_timeout_sec: 10, rated_wattage: 65.0 },
+            ac: { enabled: true, empty_shutdown_timeout_sec: 10, rated_wattage: 1200.0 }
+          };
+
+          await fetch("/api/config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(cfg)
+          });
+          localStorage.removeItem("custom_user_devices");
+          loadConfig();
+          alert("Reset to default devices!");
+        } catch (e) {}
       }
 
       async function loadConfig() {
@@ -499,27 +893,27 @@
           const res = await fetch("/api/config");
           if (res.ok) {
             const cfg = await res.json();
-            document.getElementById("cfg-persistence").value =
-              cfg.occupancy.persistence_window_sec;
-            document.getElementById("cfg-empty-timeout").value =
-              cfg.occupancy.empty_timeout_sec;
-            document.getElementById("cfg-conf").value =
-              cfg.detector.confidence_threshold;
+            document.getElementById("cfg-persistence").value = cfg.occupancy.persistence_window_sec;
+            document.getElementById("cfg-empty-timeout").value = cfg.occupancy.empty_timeout_sec;
+            document.getElementById("cfg-conf").value = cfg.detector.confidence_threshold;
             
-            // Populate individual device timeouts
+            const container = document.getElementById("shutdown-timeouts-container");
+            let html = "";
             if (cfg.devices) {
-              if (cfg.devices.light) {
-                document.getElementById("cfg-light-timeout").value =
-                  cfg.devices.light.empty_shutdown_timeout_sec;
+              for (const [dev, rule] of Object.entries(cfg.devices)) {
+                html += `
+                  <div>
+                    <label class="block text-zinc-500 font-medium mb-1 capitalize">${dev} (s)</label>
+                    <input type="number" id="cfg-timeout-${dev}" value="${rule.empty_shutdown_timeout_sec}" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200" />
+                  </div>
+                `;
               }
-              if (cfg.devices.fan) {
-                document.getElementById("cfg-fan-timeout").value =
-                  cfg.devices.fan.empty_shutdown_timeout_sec;
-              }
-              if (cfg.devices.ac) {
-                document.getElementById("cfg-ac-timeout").value =
-                  cfg.devices.ac.empty_shutdown_timeout_sec;
-              }
+            }
+            container.innerHTML = html;
+
+            if (cfg.privacy) {
+              document.getElementById("cfg-headless").checked = cfg.privacy.headless_mode;
+              document.getElementById("cfg-anonymize").checked = cfg.privacy.anonymize_faces;
             }
           }
         } catch (e) {}
@@ -531,26 +925,22 @@
           const res = await fetch("/api/config");
           const cfg = await res.json();
 
-          cfg.occupancy.persistence_window_sec = parseInt(
-            document.getElementById("cfg-persistence").value,
-          );
-          cfg.occupancy.empty_timeout_sec = parseInt(
-            document.getElementById("cfg-empty-timeout").value,
-          );
-          cfg.detector.confidence_threshold = parseFloat(
-            document.getElementById("cfg-conf").value,
-          );
+          cfg.occupancy.persistence_window_sec = parseInt(document.getElementById("cfg-persistence").value);
+          cfg.occupancy.empty_timeout_sec = parseInt(document.getElementById("cfg-empty-timeout").value);
+          cfg.detector.confidence_threshold = parseFloat(document.getElementById("cfg-conf").value);
+          
+          if (cfg.devices) {
+            for (const dev of Object.keys(cfg.devices)) {
+              const input = document.getElementById(`cfg-timeout-${dev}`);
+              if (input) {
+                cfg.devices[dev].empty_shutdown_timeout_sec = parseInt(input.value);
+              }
+            }
+          }
 
-          // Get device timeouts
-          cfg.devices.light.empty_shutdown_timeout_sec = parseInt(
-            document.getElementById("cfg-light-timeout").value,
-          );
-          cfg.devices.fan.empty_shutdown_timeout_sec = parseInt(
-            document.getElementById("cfg-fan-timeout").value,
-          );
-          cfg.devices.ac.empty_shutdown_timeout_sec = parseInt(
-            document.getElementById("cfg-ac-timeout").value,
-          );
+          if (!cfg.privacy) cfg.privacy = {};
+          cfg.privacy.headless_mode = document.getElementById("cfg-headless").checked;
+          cfg.privacy.anonymize_faces = document.getElementById("cfg-anonymize").checked;
 
           const postRes = await fetch("/api/config", {
             method: "POST",
@@ -567,6 +957,7 @@
         }
       }
 
+      initChart();
       connectWebSocket();
       loadConfig();
     </script>
