@@ -29,7 +29,8 @@ def get_vision_pipeline() -> VisionPipeline:
             )
             print(f"Successfully loaded YOLOPersonDetector using model {detector_cfg.model_name}")
         except Exception as e:
-            print(f"Failed to load YOLO detector, falling back to DummyDetector: {e}")
+            print(f"[WARNING] Failed to load YOLO detector ({e}). Falling back to DummyDetector.")
+            print("[HINT] Ensure uvicorn is started using the project virtual environment: .venv\\Scripts\\uvicorn.exe app.main:app --reload")
             detector = DummyDetector()
 
         _pipeline_instance = VisionPipeline(

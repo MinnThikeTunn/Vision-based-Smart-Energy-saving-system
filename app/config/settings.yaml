@@ -21,7 +21,15 @@ detector:
   confidence_threshold: 0.5
   device: cpu
   model_name: yolov8n.pt
-devices: {}
+devices:
+  test:
+    assigned_zone: a
+    category: fan
+    empty_shutdown_timeout_sec: 10
+    enabled: true
+    name: Test
+    power_ramp_sec: 1.5
+    rated_wattage: 50.0
 occupancy:
   empty_timeout_sec: 300
   persistence_window_sec: 2
@@ -31,4 +39,12 @@ privacy:
 simulation:
   latency_ms: 300
   power_ramp_sec: 1.5
-spatial_zones: []
+spatial_zones:
+- assigned_devices:
+  - test
+  bbox:
+  - 0.41
+  - 0.0
+  - 1.0
+  - 0.56
+  name: a

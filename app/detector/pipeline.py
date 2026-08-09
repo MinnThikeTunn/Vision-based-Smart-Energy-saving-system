@@ -113,12 +113,19 @@ class VisionPipeline:
                     frame_to_process = self._raw_frame.copy()
 
             if frame_to_process is not None:
-                boxes, count, annotated = self.detector.detect(frame_to_process)
+                spatial_zones = []
+                try:
+                    from app.config.loader import load_settings
+                    spatial_zones = load_settings().spatial_zones
+                except Exception:
+                    pass
+
+                boxes, count, annotated = self.detector.detect(frame_to_process, spatial_zones=spatial_zones)
 
                 if self.anonymize_faces and len(boxes) > 0:
                     annotated = self._apply_anonymization(annotated, boxes)
 
-                active_zones = list(set(b["zone"] for b in boxes if isinstance(b, dict) and "zone" in b))
+                active_zones = list(set(b["zone"] for b in boxes if isinstance(b, dict) and b.get("zone")))
 
                 with self._lock:
                     self._processed_frame = annotated

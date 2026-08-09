@@ -483,6 +483,9 @@
 
     </div>
 
+    <!-- Drawing Focus Mode Dimming Backdrop -->
+    <div id="drawing-focus-backdrop" class="fixed inset-0 bg-black/85 backdrop-blur-md z-40 hidden transition-all duration-300"></div>
+
     <!-- ================= MODAL: CREATE CUSTOM DEVICE & POWER RAMP ================= -->
     <div id="create-zone-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
       <div class="bg-zinc-900 border border-zinc-800 rounded-[32px] max-w-md w-full p-6 space-y-6 shadow-2xl">
@@ -492,7 +495,7 @@
           </h3>
           <button onclick="cancelZoneDrawing()" class="text-zinc-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <form onsubmit="saveNewZoneAndDevice(event)" class="space-y-4 text-xs">
+        <form onsubmit="proceedToZoneDrawing(event)" class="space-y-4 text-xs">
           <div>
             <label class="block text-zinc-400 font-semibold mb-1">Device Name</label>
             <input type="text" id="modal-device-id" placeholder="e.g. Desk Lamp" required class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-200 focus:border-emerald-500 focus:outline-none" />
@@ -528,12 +531,14 @@
 
           <div>
             <label class="block text-zinc-400 font-semibold mb-1">Spatial Zone Name <span class="text-zinc-600 font-normal">(Optional)</span></label>
-            <input type="text" id="modal-zone-name" placeholder="e.g. Workstation Spatial Zone" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-200 focus:border-emerald-500 focus:outline-none" />
+            <input type="text" id="modal-zone-name" placeholder="e.g. Desk Zone 1" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-200 focus:border-emerald-500 focus:outline-none" />
           </div>
 
           <div class="pt-2 flex justify-end gap-3">
             <button type="button" onclick="cancelZoneDrawing()" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold rounded-xl">Cancel</button>
-            <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20">Save Device & Ramp</button>
+            <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 flex items-center gap-2">
+              <i class="fa-solid fa-draw-polygon"></i> Draw Zone & Save →
+            </button>
           </div>
         </form>
       </div>
@@ -668,60 +673,7 @@
         }
       }
 
-      function startZoneDrawing() {
-        const canvas = document.getElementById("zone-canvas");
-        const container = document.getElementById("video-container");
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-        canvas.classList.remove("hidden");
-
-        const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        canvas.onmousedown = (e) => {
-          const rect = canvas.getBoundingClientRect();
-          startX = e.clientX - rect.left;
-          startY = e.clientY - rect.top;
-          isDrawing = true;
-        };
-
-        canvas.onmousemove = (e) => {
-          if (!isDrawing) return;
-          const rect = canvas.getBoundingClientRect();
-          endX = e.clientX - rect.left;
-          endY = e.clientY - rect.top;
-
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.strokeStyle = '#10b981';
-          ctx.lineWidth = 2;
-          ctx.setLineDash([6, 6]);
-          ctx.strokeRect(startX, startY, endX - startX, endY - startY);
-        };
-
-        canvas.onmouseup = (e) => {
-          if (!isDrawing) return;
-          isDrawing = false;
-          const rect = canvas.getBoundingClientRect();
-          endX = e.clientX - rect.left;
-          endY = e.clientY - rect.top;
-
-          const w = canvas.width;
-          const h = canvas.height;
-          const x_min = Math.min(startX, endX) / w;
-          const y_min = Math.min(startY, endY) / h;
-          const x_max = Math.max(startX, endX) / w;
-          const y_max = Math.max(startY, endY) / h;
-
-          drawnBbox = [
-            parseFloat(x_min.toFixed(2)),
-            parseFloat(y_min.toFixed(2)),
-            parseFloat(x_max.toFixed(2)),
-            parseFloat(y_max.toFixed(2))
-          ];
-
-          document.getElementById("create-zone-modal").classList.remove("hidden");
-        };
-      }
+      let pendingDeviceData = null;
 
       function openDeviceModal() {
         document.getElementById("modal-device-id").value = "";
@@ -733,44 +685,203 @@
         document.getElementById("create-zone-modal").classList.remove("hidden");
       }
 
-      function cancelZoneDrawing() {
-        document.getElementById("create-zone-modal").classList.add("hidden");
-        const canvas = document.getElementById("zone-canvas");
-        canvas.classList.add("hidden");
+      function startZoneDrawing() {
+        openDeviceModal();
       }
 
-      async function saveNewZoneAndDevice(e) {
-        e.preventDefault();
+      function proceedToZoneDrawing(e) {
+        if (e) e.preventDefault();
         const rawName = document.getElementById("modal-device-id").value.trim();
+        if (!rawName) return;
+
         const deviceId = rawName.toLowerCase().replace(/\s+/g, '_');
         const category = document.getElementById("modal-category").value || "custom";
         const wattage = parseFloat(document.getElementById("modal-wattage").value) || 50.0;
         const timeout = parseInt(document.getElementById("modal-timeout").value) || 10;
         const rampSec = parseFloat(document.getElementById("modal-ramp-sec").value) || 1.5;
-        const zoneName = document.getElementById("modal-zone-name").value.trim();
+        let zoneName = document.getElementById("modal-zone-name").value.trim() || `Zone: ${rawName}`;
 
+        pendingDeviceData = {
+          rawName,
+          deviceId,
+          category,
+          wattage,
+          timeout,
+          rampSec,
+          zoneName
+        };
+
+        document.getElementById("create-zone-modal").classList.add("hidden");
+        activateDrawingFocusMode();
+      }
+
+      let renderFrameRequested = false;
+
+      function activateDrawingFocusMode() {
+        const canvas = document.getElementById("zone-canvas");
+        const container = document.getElementById("video-container");
+        const videoStream = document.getElementById("video-stream");
+
+        // 1. FREEZE STREAM DURING DRAG: Capture current video frame as static JPEG snapshot to stop MJPEG repaints (0% flicker)
+        if (videoStream) {
+          try {
+            const snapCanvas = document.createElement("canvas");
+            snapCanvas.width = videoStream.naturalWidth || videoStream.clientWidth || 640;
+            snapCanvas.height = videoStream.naturalHeight || videoStream.clientHeight || 480;
+            const snapCtx = snapCanvas.getContext("2d");
+            snapCtx.drawImage(videoStream, 0, 0, snapCanvas.width, snapCanvas.height);
+            videoStream.src = snapCanvas.toDataURL("image/jpeg");
+          } catch (e) {
+            console.warn("Could not freeze video stream frame:", e);
+          }
+        }
+
+        // NO dark backdrop fadeout! Video frame stays 100% visible, bright, and clear.
+        if (container) {
+          container.style.zIndex = "40";
+          container.classList.add("ring-4", "ring-emerald-500", "shadow-2xl");
+        }
+
+        const containerRect = container.getBoundingClientRect();
+        canvas.width = containerRect.width || 640;
+        canvas.height = containerRect.height || 480;
+        canvas.classList.remove("hidden");
+
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        function drawSelectionRect() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          if (!isDrawing) return;
+
+          const w = endX - startX;
+          const h = endY - startY;
+
+          ctx.fillStyle = 'rgba(16, 185, 129, 0.25)';
+          ctx.strokeStyle = '#10b981';
+          ctx.lineWidth = 2.5;
+          ctx.setLineDash([6, 6]);
+          ctx.fillRect(startX, startY, w, h);
+          ctx.strokeRect(startX, startY, w, h);
+
+          // Render live pixel dimension badge overlay
+          ctx.fillStyle = '#10b981';
+          ctx.font = 'bold 11px Inter, sans-serif';
+          ctx.fillText(
+            `${Math.abs(Math.round(w))}px × ${Math.abs(Math.round(h))}px`,
+            Math.min(startX, endX) + 6,
+            Math.max(16, Math.min(startY, endY) - 6)
+          );
+
+          renderFrameRequested = false;
+        }
+
+        const handlePointerDown = (e) => {
+          const bounds = canvas.getBoundingClientRect();
+          startX = e.clientX - bounds.left;
+          startY = e.clientY - bounds.top;
+          endX = startX;
+          endY = startY;
+          isDrawing = true;
+
+          if (canvas.setPointerCapture && e.pointerId !== undefined) {
+            try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+          }
+        };
+
+        const handlePointerMove = (e) => {
+          if (!isDrawing) return;
+          const bounds = canvas.getBoundingClientRect();
+          endX = e.clientX - bounds.left;
+          endY = e.clientY - bounds.top;
+
+          if (!renderFrameRequested) {
+            renderFrameRequested = true;
+            requestAnimationFrame(drawSelectionRect);
+          }
+        };
+
+        const handlePointerUp = (e) => {
+          if (!isDrawing) return;
+          isDrawing = false;
+          renderFrameRequested = false;
+
+          if (canvas.releasePointerCapture && e.pointerId !== undefined) {
+            try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+          }
+
+          const bounds = canvas.getBoundingClientRect();
+          endX = e.clientX - bounds.left;
+          endY = e.clientY - bounds.top;
+
+          const widthPx = Math.abs(endX - startX);
+          const heightPx = Math.abs(endY - startY);
+
+          const w = bounds.width || canvas.width;
+          const h = bounds.height || canvas.height;
+
+          if (widthPx < 10 || heightPx < 10) {
+            drawnBbox = [0.0, 0.0, 1.0, 1.0];
+          } else {
+            const x_min = Math.max(0, Math.min(startX, endX)) / w;
+            const y_min = Math.max(0, Math.min(startY, endY)) / h;
+            const x_max = Math.min(w, Math.max(startX, endX)) / w;
+            const y_max = Math.min(h, Math.max(startY, endY)) / h;
+
+            drawnBbox = [
+              parseFloat(x_min.toFixed(2)),
+              parseFloat(y_min.toFixed(2)),
+              parseFloat(x_max.toFixed(2)),
+              parseFloat(y_max.toFixed(2))
+            ];
+          }
+
+          canvas.removeEventListener("pointerdown", handlePointerDown);
+          window.removeEventListener("pointermove", handlePointerMove);
+          window.removeEventListener("pointerup", handlePointerUp);
+
+          // Restore live video feed stream on release
+          if (videoStream) {
+            videoStream.src = isHeatmapActive ? "/api/video_feed?heatmap=true" : "/api/video_feed";
+          }
+
+          savePendingDeviceAndZone();
+        };
+
+        canvas.addEventListener("pointerdown", handlePointerDown);
+        window.addEventListener("pointermove", handlePointerMove);
+        window.addEventListener("pointerup", handlePointerUp);
+      }
+
+      async function savePendingDeviceAndZone() {
+        if (!pendingDeviceData) return;
+        const d = pendingDeviceData;
         try {
           const res = await fetch("/api/config");
           const cfg = await res.json();
 
           if (!cfg.devices) cfg.devices = {};
-          cfg.devices[deviceId] = {
+          cfg.devices[d.deviceId] = {
             enabled: true,
-            name: rawName,
-            category: category,
-            empty_shutdown_timeout_sec: timeout,
-            rated_wattage: wattage,
-            power_ramp_sec: rampSec,
-            assigned_zone: zoneName || null
+            name: d.rawName,
+            category: d.category,
+            empty_shutdown_timeout_sec: d.timeout,
+            rated_wattage: d.wattage,
+            power_ramp_sec: d.rampSec,
+            assigned_zone: d.zoneName
           };
 
-          if (zoneName && drawnBbox) {
-            if (!cfg.spatial_zones) cfg.spatial_zones = [];
-            cfg.spatial_zones.push({
-              name: zoneName,
-              bbox: drawnBbox,
-              assigned_devices: [deviceId]
-            });
+          if (!cfg.spatial_zones) cfg.spatial_zones = [];
+          const existingIdx = cfg.spatial_zones.findIndex(z => z.name === d.zoneName);
+          const newZone = {
+            name: d.zoneName,
+            bbox: drawnBbox || [0.0, 0.0, 1.0, 1.0],
+            assigned_devices: [d.deviceId]
+          };
+          if (existingIdx >= 0) {
+            cfg.spatial_zones[existingIdx] = newZone;
+          } else {
+            cfg.spatial_zones.push(newZone);
           }
 
           await fetch("/api/config", {
@@ -779,40 +890,82 @@
             body: JSON.stringify(cfg)
           });
 
-          localStorage.setItem("custom_user_devices", JSON.stringify(cfg.devices));
-
+          pendingDeviceData = null;
           cancelZoneDrawing();
           loadConfig();
         } catch (err) {
-          alert("Failed to save device: " + err);
+          alert("Failed to save device & zone: " + err);
         }
       }
 
+      function cancelZoneDrawing() {
+        document.getElementById("create-zone-modal").classList.add("hidden");
+        const canvas = document.getElementById("zone-canvas");
+        if (canvas) canvas.classList.add("hidden");
+
+        const backdrop = document.getElementById("drawing-focus-backdrop");
+        const container = document.getElementById("video-container");
+        const videoStream = document.getElementById("video-stream");
+
+        if (backdrop) backdrop.classList.add("hidden");
+        if (container) {
+          container.style.zIndex = "";
+          container.classList.remove("ring-4", "ring-emerald-500", "shadow-2xl");
+        }
+        if (videoStream && !videoStream.src.includes("/api/video_feed")) {
+          videoStream.src = isHeatmapActive ? "/api/video_feed?heatmap=true" : "/api/video_feed";
+        }
+        pendingDeviceData = null;
+      }
+
       async function deleteDevice(deviceId) {
+        if (!deviceId) return;
         if (!confirm(`Delete custom device '${deviceId}'?`)) return;
         try {
           const res = await fetch("/api/config");
           const cfg = await res.json();
 
-          if (cfg.devices) delete cfg.devices[deviceId];
-          if (cfg.spatial_zones) {
-            cfg.spatial_zones.forEach(z => {
-              z.assigned_devices = z.assigned_devices.filter(d => d !== deviceId);
-            });
+          if (cfg.devices) {
+            const targetKey = Object.keys(cfg.devices).find(k => k.toLowerCase() === deviceId.toLowerCase());
+            const keyToDelete = targetKey || deviceId;
+
+            if (cfg.devices[keyToDelete]) {
+              const assignedZoneName = cfg.devices[keyToDelete].assigned_zone;
+              delete cfg.devices[keyToDelete];
+
+              if (cfg.spatial_zones) {
+                cfg.spatial_zones = cfg.spatial_zones.filter(z => {
+                  if (z.assigned_devices) {
+                    z.assigned_devices = z.assigned_devices.filter(d => d.toLowerCase() !== keyToDelete.toLowerCase());
+                  }
+                  return z.name !== assignedZoneName && z.assigned_devices && z.assigned_devices.length > 0;
+                });
+              }
+            }
           }
 
-          await fetch("/api/config", {
+          const postRes = await fetch("/api/config", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(cfg)
           });
 
-          localStorage.setItem("custom_user_devices", JSON.stringify(cfg.devices));
-          loadConfig();
+          if (postRes.ok) {
+            loadConfig();
+          } else {
+            alert("Failed to delete device on server.");
+          }
         } catch (err) {
           alert("Failed to delete device: " + err);
         }
       }
+
+      window.deleteDevice = deleteDevice;
+      window.startZoneDrawing = startZoneDrawing;
+      window.openDeviceModal = openDeviceModal;
+      window.cancelZoneDrawing = cancelZoneDrawing;
+      window.proceedToZoneDrawing = proceedToZoneDrawing;
+      window.resetToDefaultDevices = resetToDefaultDevices;
 
       async function resetToDefaultDevices() {
         if (!confirm("Clear all custom devices and reset to zero-device state?")) return;
@@ -839,23 +992,6 @@
           const res = await fetch("/api/config");
           if (res.ok) {
             const cfg = await res.json();
-            
-            if (cfg.devices && Object.keys(cfg.devices).length === 0) {
-              const localSaved = localStorage.getItem("custom_user_devices");
-              if (localSaved) {
-                try {
-                  const savedDevices = JSON.parse(localSaved);
-                  if (Object.keys(savedDevices).length > 0) {
-                    cfg.devices = savedDevices;
-                    await fetch("/api/config", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify(cfg)
-                    });
-                  }
-                } catch (err) {}
-              }
-            }
 
             document.getElementById("cfg-persistence").value = cfg.occupancy.persistence_window_sec;
 

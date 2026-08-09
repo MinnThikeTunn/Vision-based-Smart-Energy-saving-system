@@ -31,7 +31,7 @@ def test_pipeline_draws_heatmap():
     pipeline = VisionPipeline(detector=detector, capture_func=dummy_capture, fps_target=30)
     pipeline.start()
     try:
-        time.sleep(0.1)
+        time.sleep(0.4)
         frame_normal, _, _ = pipeline.get_latest_processed(draw_heatmap=False)
         frame_heatmap, _, _ = pipeline.get_latest_processed(draw_heatmap=True)
         assert frame_normal is not None

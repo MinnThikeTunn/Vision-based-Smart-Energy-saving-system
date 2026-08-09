@@ -5,6 +5,10 @@
 **Status:** ⏳ Pending Specialist Review on Recent File Edits
 
 ## Outstanding File Edits Pending Judgment
+- `tests\test_heatmap.py`
+- `tests\test_config_api.py`
+- `app\detector\person_detector.py`
+- `tests\test_vision_pipeline.py`
 - `tests\test_version2_features.py`
 - `tests\test_metrics.py`
 - `tests\test_device_controller.py`

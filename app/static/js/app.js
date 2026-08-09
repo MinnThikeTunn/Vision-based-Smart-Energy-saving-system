@@ -17,7 +17,11 @@ document.addEventListener("DOMContentLoaded", () => {
     deviceListComponent = new DeviceListComponent(
       container,
       (deviceId) => toggleDevice(deviceId),
-      (deviceId) => deleteDevice(deviceId)
+      (deviceId) => {
+        if (window.deleteDevice) {
+          window.deleteDevice(deviceId);
+        }
+      }
     );
   }
 
