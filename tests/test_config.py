@@ -13,9 +13,9 @@ def test_default_config_loading(tmp_path):
     assert config.detector.confidence_threshold == 0.5
     assert config.occupancy.persistence_window_sec == 2
     assert config.occupancy.empty_timeout_sec == 5
-    assert config.devices["light"].empty_shutdown_timeout_sec == 5
-    assert config.devices["fan"].empty_shutdown_timeout_sec == 10
-    assert config.devices["ac"].empty_shutdown_timeout_sec == 10
+    assert config.devices == {}
+    assert config.spatial_zones == []
+
 
 
 def test_config_save_and_reload(tmp_path):

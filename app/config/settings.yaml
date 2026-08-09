@@ -1,6 +1,17 @@
 analytics:
   co2_per_kwh_kg: 0.42
+  edge_compute_watts: 30.0
   electricity_rate_kwh: 0.15
+  schedule:
+    enabled: true
+    end_hour: 19
+    operating_days:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    start_hour: 8
 camera:
   fps: 30
   height: 480
@@ -10,63 +21,14 @@ detector:
   confidence_threshold: 0.5
   device: cpu
   model_name: yolov8n.pt
-devices:
-  ac:
-    empty_shutdown_timeout_sec: 10
-    enabled: true
-    rated_wattage: 1200.0
-  deak_:
-    empty_shutdown_timeout_sec: 10
-    enabled: true
-    rated_wattage: 50.0
-  fan:
-    empty_shutdown_timeout_sec: 10
-    enabled: true
-    rated_wattage: 65.0
-  light:
-    empty_shutdown_timeout_sec: 5
-    enabled: true
-    rated_wattage: 40.0
+devices: {}
 occupancy:
   empty_timeout_sec: 300
   persistence_window_sec: 2
 privacy:
-  anonymize_faces: true
+  anonymize_faces: false
   headless_mode: false
 simulation:
   latency_ms: 300
   power_ramp_sec: 1.5
-spatial_zones:
-- assigned_devices:
-  - light
-  - fan
-  bbox:
-  - 0.0
-  - 0.0
-  - 0.5
-  - 1.0
-  name: Zone A (Desk)
-- assigned_devices:
-  - ac
-  bbox:
-  - 0.5
-  - 0.0
-  - 1.0
-  - 1.0
-  name: Zone B (Transit)
-- assigned_devices:
-  - oo
-  bbox:
-  - 0.98
-  - 0.99
-  - 0.98
-  - 0.99
-  name: Zone 3
-- assigned_devices:
-  - deak_
-  bbox:
-  - 0.5
-  - 0.0
-  - 0.87
-  - 0.29
-  name: Zone 3
+spatial_zones: []

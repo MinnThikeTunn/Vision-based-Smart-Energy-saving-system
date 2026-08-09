@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vision Smart Energy Saver v2 — Control & Analytics Center</title>
+    <title>Vision Smart Energy Saver v3 — Control & Analytics Center</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -11,6 +11,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
+    <!-- Modular Stylesheet -->
+    <link rel="stylesheet" href="/static/css/main.css" />
     <!-- FontAwesome, Tailwind & Chart.js -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link
@@ -18,11 +20,13 @@
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module" src="/static/js/app.js"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
             fontFamily: {
+
               sans: ['Inter', 'sans-serif'],
               heading: ['Outfit', 'sans-serif'],
             },
@@ -168,12 +172,12 @@
                   </button>
                 </div>
               </div>
-              <div class="relative bg-black aspect-video flex items-center justify-center overflow-hidden" id="video-container">
+              <div class="relative bg-black flex items-center justify-center overflow-hidden" id="video-container" style="aspect-ratio: 640/480;">
                 <img
                   id="video-stream"
                   src="/api/video_feed"
                   alt="Camera Stream"
-                  class="w-full h-full object-contain"
+                  class="w-full h-full object-cover"
                 />
                 <!-- Interactive Drawing Overlay Canvas -->
                 <canvas id="zone-canvas" class="canvas-overlay hidden"></canvas>
@@ -232,21 +236,48 @@
               </div>
 
               <!-- Empty State Notification if zero devices -->
-              <div id="zero-device-notice" class="hidden p-6 bg-zinc-950/60 rounded-2xl border border-dashed border-zinc-800 text-center space-y-3">
-                <div class="p-3 bg-emerald-500/10 rounded-full w-12 h-12 mx-auto flex items-center justify-center text-emerald-400">
-                  <i class="fa-solid fa-plus text-xl"></i>
+              <div id="zero-device-notice" class="hidden p-6 bg-zinc-950/70 rounded-[32px] border border-dashed border-zinc-800 text-left space-y-5 transition-all-300 shadow-2xl">
+                <div class="flex items-center gap-3">
+                  <div class="p-3 bg-emerald-500/10 rounded-2xl text-emerald-400 border border-emerald-500/20">
+                    <i class="fa-solid fa-sliders text-lg"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-black-heading text-zinc-100">Zero Virtual Devices Configured</h3>
+                    <p class="text-[11px] text-zinc-500 mt-0.5">Follow the 2-step setup wizard to model electrical devices and camera spatial zones.</p>
+                  </div>
                 </div>
-                <div class="text-xs font-bold text-zinc-200">Zero Active Devices Configured</div>
-                <p class="text-[11px] text-zinc-500">
-                  Click below to draw a spatial zone on the camera feed and bind a new smart device.
-                </p>
-                <button
-                  onclick="startZoneDrawing()"
-                  class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all-300"
-                >
-                  + Create First Zone & Device
-                </button>
+
+                <div class="space-y-3">
+                  <!-- Step 1 Card -->
+                  <div class="p-4 bg-zinc-900/80 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-xs font-bold flex items-center justify-center border border-emerald-500/30">1</div>
+                      <div>
+                        <div class="text-xs font-bold text-zinc-200">Create Custom Device</div>
+                        <div class="text-[10px] text-zinc-500">Define name, wattage, timeout & power ramp.</div>
+                      </div>
+                    </div>
+                    <button onclick="openDeviceModal()" class="px-3.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold rounded-xl transition-all-300 flex items-center gap-1.5">
+                      <i class="fa-solid fa-plus text-xs"></i> Add Device
+                    </button>
+                  </div>
+
+                  <!-- Step 2 Card -->
+                  <div class="p-4 bg-zinc-900/80 rounded-2xl border border-zinc-800/80 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <div class="w-7 h-7 rounded-full bg-sky-500/20 text-sky-300 font-mono text-xs font-bold flex items-center justify-center border border-sky-500/30">2</div>
+                      <div>
+                        <div class="text-xs font-bold text-zinc-200">Assign Spatial Zone</div>
+                        <div class="text-[10px] text-zinc-500">Draw bounding-box zone on live camera stream.</div>
+                      </div>
+                    </div>
+                    <button onclick="startZoneDrawing()" class="px-3.5 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 text-xs font-bold rounded-xl transition-all-300 flex items-center gap-1.5">
+                      <i class="fa-solid fa-draw-polygon text-xs"></i> Draw Zone
+                    </button>
+                  </div>
+                </div>
               </div>
+
 
               <!-- Device Container -->
               <div id="device-list-container" class="space-y-4">
@@ -452,41 +483,62 @@
 
     </div>
 
-    <!-- ================= MODAL: CREATE ZONE & BIND DEVICE ================= -->
+    <!-- ================= MODAL: CREATE CUSTOM DEVICE & POWER RAMP ================= -->
     <div id="create-zone-modal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-      <div class="bg-zinc-900 border border-zinc-800 rounded-3xl max-w-md w-full p-6 space-y-6 shadow-2xl">
+      <div class="bg-zinc-900 border border-zinc-800 rounded-[32px] max-w-md w-full p-6 space-y-6 shadow-2xl">
         <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
-          <h3 class="text-base font-bold text-zinc-100 flex items-center gap-2">
-            <i class="fa-solid fa-draw-polygon text-emerald-400"></i> Bind Spatial Zone & Smart Device
+          <h3 class="text-base font-black-heading text-zinc-100 flex items-center gap-2">
+            <i class="fa-solid fa-sliders text-emerald-400"></i> Configure Custom Virtual Device
           </h3>
           <button onclick="cancelZoneDrawing()" class="text-zinc-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <form onsubmit="saveNewZoneAndDevice(event)" class="space-y-4 text-xs">
           <div>
-            <label class="block text-zinc-400 font-semibold mb-1">Spatial Zone Name</label>
-            <input type="text" id="modal-zone-name" placeholder="e.g. Workstation 1" required class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200" />
+            <label class="block text-zinc-400 font-semibold mb-1">Device Name</label>
+            <input type="text" id="modal-device-id" placeholder="e.g. Desk Lamp" required class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-200 focus:border-emerald-500 focus:outline-none" />
           </div>
-          <div>
-            <label class="block text-zinc-400 font-semibold mb-1">Device ID / Name</label>
-            <input type="text" id="modal-device-id" placeholder="e.g. desk_lamp" required class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200" />
-          </div>
+
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-zinc-400 font-semibold mb-1">Rated Power (Watts)</label>
-              <input type="number" id="modal-wattage" value="50" required class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200" />
+              <label class="block text-zinc-400 font-semibold mb-1">Device Category</label>
+              <select id="modal-category" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-zinc-200 focus:border-emerald-500 focus:outline-none">
+                <option value="light">Light</option>
+                <option value="fan">Fan</option>
+                <option value="ac">HVAC / AC</option>
+                <option value="electronics">Electronics</option>
+                <option value="custom" selected>Custom</option>
+              </select>
             </div>
             <div>
-              <label class="block text-zinc-400 font-semibold mb-1">Shutdown Timeout (s)</label>
-              <input type="number" id="modal-timeout" value="10" required class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-200" />
+              <label class="block text-zinc-400 font-semibold mb-1">Rated Power (W)</label>
+              <input type="number" id="modal-wattage" placeholder="50.0" step="0.1" value="50" required class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-200 focus:border-emerald-500 focus:outline-none" />
             </div>
           </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-zinc-400 font-semibold mb-1">Shutdown Timeout (s)</label>
+              <input type="number" id="modal-timeout" placeholder="10" value="10" required class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-200 focus:border-emerald-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-zinc-400 font-semibold mb-1">Power Ramp Speed (s)</label>
+              <input type="number" id="modal-ramp-sec" placeholder="1.5" step="0.1" value="1.5" required class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-200 focus:border-emerald-500 focus:outline-none" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-zinc-400 font-semibold mb-1">Spatial Zone Name <span class="text-zinc-600 font-normal">(Optional)</span></label>
+            <input type="text" id="modal-zone-name" placeholder="e.g. Workstation Spatial Zone" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-200 focus:border-emerald-500 focus:outline-none" />
+          </div>
+
           <div class="pt-2 flex justify-end gap-3">
             <button type="button" onclick="cancelZoneDrawing()" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold rounded-xl">Cancel</button>
-            <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20">Save Zone & Device</button>
+            <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20">Save Device & Ramp</button>
           </div>
         </form>
       </div>
     </div>
+
 
     <!-- ================= SLIDE-OVER AUDIT TRAIL DRAWER ================= -->
     <div id="audit-drawer-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden drawer-overlay" onclick="toggleAuditDrawer(false)">
@@ -604,10 +656,13 @@
       function toggleHeatmap() {
         isHeatmapActive = !isHeatmapActive;
         const btn = document.getElementById("btn-toggle-heatmap");
+        const videoStream = document.getElementById("video-stream");
         if (isHeatmapActive) {
+          if (videoStream) videoStream.src = "/api/video_feed?heatmap=true";
           btn.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-zinc-950 border border-amber-400 shadow-lg shadow-amber-500/20 transition-all-300 flex items-center gap-1.5";
           btn.innerHTML = `<i class="fa-solid fa-fire text-zinc-950"></i> Heatmap ON`;
         } else {
+          if (videoStream) videoStream.src = "/api/video_feed";
           btn.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition-all-300 flex items-center gap-1.5";
           btn.innerHTML = `<i class="fa-solid fa-fire text-amber-400"></i> Heatmap OFF`;
         }
@@ -668,6 +723,16 @@
         };
       }
 
+      function openDeviceModal() {
+        document.getElementById("modal-device-id").value = "";
+        document.getElementById("modal-category").value = "custom";
+        document.getElementById("modal-wattage").value = "50";
+        document.getElementById("modal-timeout").value = "10";
+        document.getElementById("modal-ramp-sec").value = "1.5";
+        document.getElementById("modal-zone-name").value = "";
+        document.getElementById("create-zone-modal").classList.remove("hidden");
+      }
+
       function cancelZoneDrawing() {
         document.getElementById("create-zone-modal").classList.add("hidden");
         const canvas = document.getElementById("zone-canvas");
@@ -676,10 +741,13 @@
 
       async function saveNewZoneAndDevice(e) {
         e.preventDefault();
-        const zoneName = document.getElementById("modal-zone-name").value;
-        const deviceId = document.getElementById("modal-device-id").value.toLowerCase().replace(/\s+/g, '_');
-        const wattage = parseFloat(document.getElementById("modal-wattage").value);
-        const timeout = parseInt(document.getElementById("modal-timeout").value);
+        const rawName = document.getElementById("modal-device-id").value.trim();
+        const deviceId = rawName.toLowerCase().replace(/\s+/g, '_');
+        const category = document.getElementById("modal-category").value || "custom";
+        const wattage = parseFloat(document.getElementById("modal-wattage").value) || 50.0;
+        const timeout = parseInt(document.getElementById("modal-timeout").value) || 10;
+        const rampSec = parseFloat(document.getElementById("modal-ramp-sec").value) || 1.5;
+        const zoneName = document.getElementById("modal-zone-name").value.trim();
 
         try {
           const res = await fetch("/api/config");
@@ -688,16 +756,22 @@
           if (!cfg.devices) cfg.devices = {};
           cfg.devices[deviceId] = {
             enabled: true,
+            name: rawName,
+            category: category,
             empty_shutdown_timeout_sec: timeout,
-            rated_wattage: wattage
+            rated_wattage: wattage,
+            power_ramp_sec: rampSec,
+            assigned_zone: zoneName || null
           };
 
-          if (!cfg.spatial_zones) cfg.spatial_zones = [];
-          cfg.spatial_zones.push({
-            name: zoneName,
-            bbox: drawnBbox,
-            assigned_devices: [deviceId]
-          });
+          if (zoneName && drawnBbox) {
+            if (!cfg.spatial_zones) cfg.spatial_zones = [];
+            cfg.spatial_zones.push({
+              name: zoneName,
+              bbox: drawnBbox,
+              assigned_devices: [deviceId]
+            });
+          }
 
           await fetch("/api/config", {
             method: "POST",
@@ -709,173 +783,45 @@
 
           cancelZoneDrawing();
           loadConfig();
-          alert(`Successfully created ${zoneName} and bound device ${deviceId}!`);
         } catch (err) {
-          alert("Failed to save new zone: " + err);
+          alert("Failed to save device: " + err);
         }
       }
 
-      function connectWebSocket() {
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${protocol}//${window.location.host}/ws/status`;
-        ws = new WebSocket(wsUrl);
-
-        ws.onopen = () => {
-          const badge = document.getElementById("connection-badge");
-          badge.className = "px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 flex items-center gap-2";
-          badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Connected`;
-        };
-
-        ws.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          updateDashboard(data);
-        };
-
-        ws.onclose = () => {
-          const badge = document.getElementById("connection-badge");
-          badge.className = "px-3.5 py-1.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/20 flex items-center gap-2";
-          badge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span> Disconnected`;
-          setTimeout(connectWebSocket, 3000);
-        };
-      }
-
-      function updateDashboard(data) {
-        document.getElementById("stat-occupants").innerText = data.occupant_count;
-
-        const statusElem = document.getElementById("stat-status");
-        statusElem.innerText = data.occupancy_status;
-        statusElem.className = data.occupancy_status === "Occupied"
-          ? "text-xl font-black-heading text-emerald-400 mt-2"
-          : "text-xl font-black-heading text-amber-400 mt-2";
-
-        document.getElementById("stat-empty-dur").innerText = `${data.empty_duration_sec}s`;
-        document.getElementById("stat-countdown").innerText = `${data.seconds_until_empty}s`;
-
-        if (data.energy_metrics) {
-          const currentPwr = data.energy_metrics.current_power_watts;
-          const baselinePwr = data.energy_metrics.baseline_power_watts;
-
-          document.getElementById("stat-power-draw").innerText = `${currentPwr} W`;
-          document.getElementById("stat-baseline-power").innerText = `${baselinePwr} W`;
-          document.getElementById("stat-saved-kwh").innerText = `${data.energy_metrics.saved_kwh} kWh`;
-          document.getElementById("stat-saved-co2").innerText = `${data.energy_metrics.saved_co2_kg} kg`;
-          document.getElementById("stat-saved-cost").innerText = `$${data.energy_metrics.saved_cost_usd}`;
-          document.getElementById("stat-efficiency").innerText = `${data.energy_metrics.energy_efficiency_pct}%`;
-
-          if (powerChart) {
-            powerChart.data.datasets[0].data.shift();
-            powerChart.data.datasets[0].data.push(currentPwr);
-
-            powerChart.data.datasets[1].data.shift();
-            powerChart.data.datasets[1].data.push(baselinePwr);
-            powerChart.update('none');
-          }
-        }
-
-        if (data.forecast) {
-          document.getElementById("stat-forecast").innerText = data.forecast.prewarm_hvac_recommended ? "Pre-warm Active" : "Normal";
-          document.getElementById("forecast-prob").innerText = `${Math.round(data.forecast.predicted_occupancy_probability * 100)}%`;
-          document.getElementById("forecast-status").innerText = data.forecast.prewarm_hvac_recommended ? "Recommended" : "Not Required";
-          document.getElementById("forecast-reason").innerText = data.forecast.reason;
-        }
-
-        if (data.device_countdowns) {
-          if (data.device_countdowns.light !== undefined) document.getElementById("timer-light").innerText = `${data.device_countdowns.light}s`;
-          if (data.device_countdowns.fan !== undefined) document.getElementById("timer-fan").innerText = `${data.device_countdowns.fan}s`;
-          if (data.device_countdowns.ac !== undefined) document.getElementById("timer-ac").innerText = `${data.device_countdowns.ac}s`;
-        }
-
-        if (data.device_states) {
-          currentDeviceStates = data.device_states;
-          renderDeviceList(data.device_states, data.device_telemetry);
-        }
-
-        if (data.event_logs) {
-          renderEventLogs(data.event_logs);
-          document.getElementById("audit-log-badge").innerText = data.event_logs.length;
-        }
-      }
-
-      function renderDeviceList(deviceStates, deviceTelemetry) {
-        const container = document.getElementById("device-list-container");
-        const zeroNotice = document.getElementById("zero-device-notice");
-        const keys = Object.keys(deviceStates);
-
-        if (keys.length === 0) {
-          container.innerHTML = "";
-          zeroNotice.classList.remove("hidden");
-          return;
-        }
-
-        zeroNotice.classList.add("hidden");
-        let html = "";
-        for (const dev of keys) {
-          const state = deviceStates[dev];
-          const pwr = deviceTelemetry && deviceTelemetry[dev] ? deviceTelemetry[dev].power_pct : 0;
-          const isOn = state === "ON" || state === "DIM";
-
-          html += `
-            <div class="flex items-center justify-between p-4 bg-zinc-950/40 rounded-2xl border border-zinc-800/50 hover:border-zinc-800 transition-all-300">
-              <div class="flex items-center gap-3">
-                <div class="p-3 ${isOn ? 'bg-emerald-500/20 text-emerald-300' : 'bg-zinc-800/40 text-zinc-600'} rounded-xl transition-all-300">
-                  <i class="fa-solid fa-plug text-xl"></i>
-                </div>
-                <div>
-                  <div class="font-bold text-sm text-zinc-200 capitalize">${dev.replace(/_/g, ' ')}</div>
-                  <div class="text-xs ${isOn ? 'text-emerald-400' : 'text-zinc-500'} font-medium mt-0.5">
-                    State: ${state} (${pwr}%)
-                  </div>
-                </div>
-              </div>
-              <button
-                onclick="toggleDevice('${dev}')"
-                class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold rounded-xl text-zinc-200 hover:text-white transition-all-300"
-              >
-                Toggle
-              </button>
-            </div>
-          `;
-        }
-        container.innerHTML = html;
-      }
-
-      function renderEventLogs(logs) {
-        const tbody = document.getElementById("event-log-rows");
-        if (!logs || logs.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-zinc-600">No events logged yet.</td></tr>';
-          return;
-        }
-
-        tbody.innerHTML = logs
-          .map(
-            (log) => `
-        <tr class="hover:bg-zinc-800/30 transition-all-300">
-          <td class="py-3 text-zinc-500 font-mono text-[11px]">${new Date(log.timestamp).toLocaleTimeString()}</td>
-          <td class="py-3 font-semibold capitalize text-zinc-200 text-xs">${log.device_id}</td>
-          <td class="py-3 font-bold text-xs ${log.action === "ON" ? "text-emerald-400" : "text-rose-400"}">${log.action}</td>
-          <td class="py-3 text-zinc-400 font-light text-[11px]">${log.reason}</td>
-        </tr>
-      `,
-          )
-          .join("");
-      }
-
-      function toggleDevice(deviceId) {
-        if (!ws || ws.readyState !== WebSocket.OPEN) return;
-        const nextState = currentDeviceStates[deviceId] === "ON" ? "OFF" : "ON";
-        ws.send(JSON.stringify({ type: "TOGGLE_DEVICE", device_id: deviceId, state: nextState }));
-      }
-
-      async function resetToDefaultDevices() {
+      async function deleteDevice(deviceId) {
+        if (!confirm(`Delete custom device '${deviceId}'?`)) return;
         try {
           const res = await fetch("/api/config");
           const cfg = await res.json();
 
-          cfg.devices = {
-            light: { enabled: true, empty_shutdown_timeout_sec: 5, rated_wattage: 40.0 },
-            fan: { enabled: true, empty_shutdown_timeout_sec: 10, rated_wattage: 65.0 },
-            ac: { enabled: true, empty_shutdown_timeout_sec: 10, rated_wattage: 1200.0 }
-          };
+          if (cfg.devices) delete cfg.devices[deviceId];
+          if (cfg.spatial_zones) {
+            cfg.spatial_zones.forEach(z => {
+              z.assigned_devices = z.assigned_devices.filter(d => d !== deviceId);
+            });
+          }
+
+          await fetch("/api/config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(cfg)
+          });
+
+          localStorage.setItem("custom_user_devices", JSON.stringify(cfg.devices));
+          loadConfig();
+        } catch (err) {
+          alert("Failed to delete device: " + err);
+        }
+      }
+
+      async function resetToDefaultDevices() {
+        if (!confirm("Clear all custom devices and reset to zero-device state?")) return;
+        try {
+          const res = await fetch("/api/config");
+          const cfg = await res.json();
+
+          cfg.devices = {};
+          cfg.spatial_zones = [];
 
           await fetch("/api/config", {
             method: "POST",
@@ -884,9 +830,9 @@
           });
           localStorage.removeItem("custom_user_devices");
           loadConfig();
-          alert("Reset to default devices!");
         } catch (e) {}
       }
+
 
       async function loadConfig() {
         try {

@@ -128,14 +128,18 @@ class VisionPipeline:
 
             time.sleep(1.0 / self.fps_target)
 
-    def get_latest_processed(self) -> tuple[np.ndarray | None, int, list[str]]:
+    def get_latest_processed(self, draw_heatmap: bool = False) -> tuple[np.ndarray | None, int, list[str]]:
         with self._lock:
             frame = self._processed_frame.copy() if self._processed_frame is not None else None
+            if frame is not None and draw_heatmap:
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                heatmap_overlay = cv2.applyColorMap(gray, cv2.COLORMAP_JET)
+                frame = cv2.addWeighted(frame, 0.7, heatmap_overlay, 0.3, 0)
             return frame, self._occupant_count, list(self._active_zones)
 
-    def generate_mjpeg_stream(self):
+    def generate_mjpeg_stream(self, draw_heatmap: bool = False):
         while self.is_running:
-            frame, _, _ = self.get_latest_processed()
+            frame, _, _ = self.get_latest_processed(draw_heatmap=draw_heatmap)
             if frame is None:
                 frame = np.zeros((480, 640, 3), dtype=np.uint8)
                 cv2.putText(
@@ -156,3 +160,4 @@ class VisionPipeline:
                     b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
                 )
             time.sleep(1.0 / self.fps_target)
+

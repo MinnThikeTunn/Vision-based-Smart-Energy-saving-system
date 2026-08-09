@@ -19,7 +19,7 @@ router = APIRouter(tags=["websocket"])
 _device_controller: BaseDeviceController = SimulationController()
 _state_machine: OccupancyStateMachine = OccupancyStateMachine()
 _device_matrix: DeviceControlMatrix = DeviceControlMatrix(
-    device_timeouts={"light": 180, "fan": 600, "ac": 600}
+    device_timeouts={}, zone_device_map={}
 )
 _energy_calculator: EnergyCalculator = EnergyCalculator()
 _forecaster: OccupancyForecaster = OccupancyForecaster()
@@ -63,17 +63,35 @@ def build_telemetry_payload(pipeline: VisionPipeline | None = None) -> Dict[str,
 
         device_timeouts = {}
         wattages = {}
+        current_config_keys = set()
         for device_name, rule in settings.devices.items():
             if rule.enabled:
-                device_timeouts[device_name] = rule.empty_shutdown_timeout_sec
-                wattages[device_name] = rule.rated_wattage
+                device_key = device_name.lower()
+                current_config_keys.add(device_key)
+                device_timeouts[device_key] = rule.empty_shutdown_timeout_sec
+                wattages[device_key] = rule.rated_wattage
+                if hasattr(_device_controller, "register_device"):
+                    _device_controller.register_device(device_key, rule.power_ramp_sec)
+
+        # Unregister deleted devices
+        if hasattr(_device_controller, "unregister_device"):
+            existing_states = _device_controller.get_device_states()
+            for dev_key in list(existing_states.keys()):
+                if dev_key not in current_config_keys:
+                    _device_controller.unregister_device(dev_key)
+
+        zone_map = {}
+        for zone in settings.spatial_zones:
+            zone_map[zone.name] = [d.lower() for d in zone.assigned_devices]
 
         _device_matrix.device_timeouts = device_timeouts
+        _device_matrix.zone_device_map = zone_map
         _energy_calculator.device_wattages = wattages
         _energy_calculator.electricity_rate_kwh = settings.analytics.electricity_rate_kwh
         _energy_calculator.co2_per_kwh_kg = settings.analytics.co2_per_kwh_kg
     except Exception as e:
         print(f"Error updating config in telemetry payload: {e}")
+
 
     raw_count = 0
     active_zones = None

@@ -53,3 +53,21 @@ def test_device_control_matrix_rules():
     empty_action_dict = {a["device_id"]: a["action"] for a in actions_empty}
     assert empty_action_dict.get("light") == "TURN_OFF"
     assert "fan" not in empty_action_dict  # Timeout (600s) not reached yet!
+
+
+def test_decoupled_device_timeouts_during_occupied_empty_countdown():
+    """Verify that devices with short shutdown timeouts turn OFF when empty_duration_sec reaches timeout, even if room state is OCCUPIED."""
+    matrix = DeviceControlMatrix(device_timeouts={"light": 5, "fan": 10, "ac": 300})
+
+    # Occupied room with 8 seconds empty duration (past 5s light timeout, but before 10s fan and 300s ac)
+    actions = matrix.evaluate(
+        room_state=RoomState.OCCUPIED,
+        empty_duration_sec=8.0,
+        current_states={"light": "ON", "fan": "ON", "ac": "ON"},
+    )
+    action_dict = {a["device_id"]: a["action"] for a in actions}
+
+    assert action_dict.get("light") == "TURN_OFF"
+    assert "fan" not in action_dict
+    assert "ac" not in action_dict
+
