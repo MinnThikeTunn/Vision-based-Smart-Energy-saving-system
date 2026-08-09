@@ -60,7 +60,7 @@ def set_vision_pipeline(pipeline: VisionPipeline) -> None:
 
 
 @router.get("/video_feed")
-def video_feed():
+def video_feed(heatmap: bool = False):
     from app.config.loader import load_settings
     settings = load_settings()
     
@@ -90,6 +90,6 @@ def video_feed():
 
     pipeline = get_vision_pipeline()
     return StreamingResponse(
-        pipeline.generate_mjpeg_stream(),
+        pipeline.generate_mjpeg_stream(draw_heatmap=heatmap),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )

@@ -128,14 +128,32 @@ class VisionPipeline:
 
             time.sleep(1.0 / self.fps_target)
 
-    def get_latest_processed(self) -> tuple[np.ndarray | None, int, list[str]]:
+    def get_latest_processed(self, draw_heatmap: bool = False) -> tuple[np.ndarray | None, int, list[str]]:
         with self._lock:
             frame = self._processed_frame.copy() if self._processed_frame is not None else None
-            return frame, self._occupant_count, list(self._active_zones)
+            occupant_count = self._occupant_count
+            active_zones = list(self._active_zones)
+            boxes = list(self._boxes)
 
-    def generate_mjpeg_stream(self):
+        if frame is not None and draw_heatmap and len(boxes) > 0:
+            heatmap_layer = np.zeros_like(frame)
+            h, w = frame.shape[:2]
+            for box in boxes:
+                b = box.get("bbox") if isinstance(box, dict) else box
+                if b and len(b) >= 4:
+                    x1, y1, x2, y2 = map(int, b[:4])
+                    cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+                    radius = max(30, max(x2 - x1, y2 - y1))
+                    cv2.circle(heatmap_layer, (cx, cy), radius, (0, 0, 255), -1)
+            heatmap_layer = cv2.GaussianBlur(heatmap_layer, (31, 31), 0)
+            heatmap_color = cv2.applyColorMap(cv2.cvtColor(heatmap_layer, cv2.COLOR_BGR2GRAY), cv2.COLORMAP_JET)
+            frame = cv2.addWeighted(frame, 0.7, heatmap_color, 0.3, 0)
+
+        return frame, occupant_count, active_zones
+
+    def generate_mjpeg_stream(self, draw_heatmap: bool = False):
         while self.is_running:
-            frame, _, _ = self.get_latest_processed()
+            frame, _, _ = self.get_latest_processed(draw_heatmap=draw_heatmap)
             if frame is None:
                 frame = np.zeros((480, 640, 3), dtype=np.uint8)
                 cv2.putText(
@@ -156,3 +174,4 @@ class VisionPipeline:
                     b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
                 )
             time.sleep(1.0 / self.fps_target)
+

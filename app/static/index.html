@@ -604,12 +604,15 @@
       function toggleHeatmap() {
         isHeatmapActive = !isHeatmapActive;
         const btn = document.getElementById("btn-toggle-heatmap");
+        const videoStream = document.getElementById("video-stream");
         if (isHeatmapActive) {
           btn.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-zinc-950 border border-amber-400 shadow-lg shadow-amber-500/20 transition-all-300 flex items-center gap-1.5";
           btn.innerHTML = `<i class="fa-solid fa-fire text-zinc-950"></i> Heatmap ON`;
+          if (videoStream) videoStream.src = "/api/video_feed?heatmap=true";
         } else {
           btn.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition-all-300 flex items-center gap-1.5";
           btn.innerHTML = `<i class="fa-solid fa-fire text-amber-400"></i> Heatmap OFF`;
+          if (videoStream) videoStream.src = "/api/video_feed";
         }
       }
 
