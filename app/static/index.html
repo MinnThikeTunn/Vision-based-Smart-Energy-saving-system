@@ -839,7 +839,26 @@
           const res = await fetch("/api/config");
           if (res.ok) {
             const cfg = await res.json();
+            
+            if (cfg.devices && Object.keys(cfg.devices).length === 0) {
+              const localSaved = localStorage.getItem("custom_user_devices");
+              if (localSaved) {
+                try {
+                  const savedDevices = JSON.parse(localSaved);
+                  if (Object.keys(savedDevices).length > 0) {
+                    cfg.devices = savedDevices;
+                    await fetch("/api/config", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(cfg)
+                    });
+                  }
+                } catch (err) {}
+              }
+            }
+
             document.getElementById("cfg-persistence").value = cfg.occupancy.persistence_window_sec;
+
             document.getElementById("cfg-empty-timeout").value = cfg.occupancy.empty_timeout_sec;
             document.getElementById("cfg-conf").value = cfg.detector.confidence_threshold;
             
