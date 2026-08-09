@@ -176,7 +176,11 @@ function updateEnergyMetrics(m) {
   const effPct = document.getElementById("stat-efficiency");
 
   if (curPwr && m.current_power_watts !== undefined) curPwr.textContent = `${m.current_power_watts.toFixed(1)} W`;
-  if (basePwr && m.baseline_power_watts !== undefined) basePwr.textContent = `${m.baseline_power_watts.toFixed(0)} W`;
+  if (basePwr) {
+    const rated = m.rated_baseline_watts !== undefined ? m.rated_baseline_watts : (m.baseline_power_watts || 0);
+    const scheduleStatus = m.schedule_active === false ? " (Off-Schedule)" : "";
+    basePwr.textContent = `${rated.toFixed(0)} W${scheduleStatus}`;
+  }
   if (savedKwh && m.saved_kwh !== undefined) savedKwh.textContent = `${m.saved_kwh.toFixed(4)} kWh`;
   if (savedCo2 && m.saved_co2_kg !== undefined) savedCo2.textContent = `${m.saved_co2_kg.toFixed(2)} kg`;
   if (savedCost && m.saved_cost_usd !== undefined) savedCost.textContent = `$${m.saved_cost_usd.toFixed(2)}`;
@@ -226,7 +230,8 @@ async function fetchAnalyticsData() {
 
       const peakSavingsEl = document.getElementById("insight-peak-savings");
       if (peakSavingsEl) {
-        peakSavingsEl.textContent = `${(dailyData.total_kwh_saved || 0).toFixed(2)} kWh Saved Today`;
+        const totSaved = dailyData.total_kwh_saved || 0;
+        peakSavingsEl.textContent = totSaved > 0 ? `${totSaved.toFixed(2)} kWh Saved Today` : `0.00 kWh (Logging 5-min intervals)`;
       }
 
       const deviceListEl = document.getElementById("device-usage-list");
@@ -339,6 +344,8 @@ function initChart() {
           ticks: { color: '#a1a1aa', font: { size: 10 } }
         },
         y: {
+          beginAtZero: true,
+          suggestedMax: 0.5,
           grid: { color: 'rgba(255,255,255,0.05)' },
           ticks: { color: '#a1a1aa', font: { size: 10 } },
           title: { display: true, text: 'Energy (kWh)', color: '#71717a', font: { size: 10 } }
@@ -352,6 +359,7 @@ function initChart() {
 
   fetchAnalyticsData();
 }
+
 
 function bindGlobalEvents() {
   window.toggleDevice = toggleDevice;

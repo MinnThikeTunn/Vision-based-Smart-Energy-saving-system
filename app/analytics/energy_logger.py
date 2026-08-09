@@ -23,9 +23,10 @@ class EnergyLogger:
         self.log_interval_sec: float = log_interval_sec
         self.log_dir: str = log_dir
         self.energy_log: deque[Dict[str, Any]] = deque(maxlen=max_memory_entries)
-        self.last_log_time: float = time.time()
+        self.last_log_time: float = 0.0  # Allow immediate first snapshot on startup
         self.last_cumulative_baseline: float = 0.0
         self.last_cumulative_actual: float = 0.0
+
 
         os.makedirs(self.log_dir, exist_ok=True)
 
