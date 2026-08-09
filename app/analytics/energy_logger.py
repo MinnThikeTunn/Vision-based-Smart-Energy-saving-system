@@ -16,7 +16,7 @@ class EnergyLogger:
 
     def __init__(
         self,
-        log_interval_sec: float = 300.0,
+        log_interval_sec: float = 5.0,
         log_dir: str = "data/logs",
         max_memory_entries: int = 2016,
     ) -> None:

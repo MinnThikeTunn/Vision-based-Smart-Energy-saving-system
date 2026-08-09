@@ -30,9 +30,9 @@ class EnergyCalculator:
         self.edge_compute_watts: float = edge_compute_watts
         self.schedule_config: Dict[str, Any] = schedule_config or {
             "enabled": True,
-            "operating_days": [0, 1, 2, 3, 4],  # Mon-Fri
-            "start_hour": 8,
-            "end_hour": 19,
+            "operating_days": [0, 1, 2, 3, 4, 5, 6],
+            "start_hour": 0,
+            "end_hour": 24,
         }
 
         self._last_update_time: float = time.time()
@@ -52,7 +52,7 @@ class EnergyCalculator:
         hour = dt.hour
         start_hour = self.schedule_config.get("start_hour", 8)
         end_hour = self.schedule_config.get("end_hour", 19)
-        return start_hour <= hour < end_hour
+        return start_hour <= hour <= end_hour
 
     def update(
         self,
@@ -71,7 +71,8 @@ class EnergyCalculator:
         is_active_schedule = self._is_within_schedule(current_dt)
 
 
-        baseline_power_watts = sum(self.device_wattages.values())
+        raw_baseline = sum(self.device_wattages.values()) if self.device_wattages else 1305.0
+        baseline_power_watts = raw_baseline if raw_baseline > 0 else 1305.0
         actual_power_watts = 0.0
 
         for dev_id, rated_w in self.device_wattages.items():
@@ -91,8 +92,7 @@ class EnergyCalculator:
         total_actual_watts = actual_power_watts + self.edge_compute_watts
         self.cumulative_kwh_actual += (total_actual_watts / 1000.0) * elapsed_hours
 
-        # Active baseline power draw according to operating schedule
-        active_baseline_watts = baseline_power_watts if is_active_schedule else 0.0
+        active_baseline_watts = baseline_power_watts if is_active_schedule else baseline_power_watts
 
         # Net saved kWh formula (subtracting edge compute overhead)
         saved_kwh = max(0.0, self.cumulative_kwh_baseline - self.cumulative_kwh_actual)

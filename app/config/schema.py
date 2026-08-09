@@ -34,7 +34,7 @@ class SpatialZoneConfig(BaseModel):
 
 class OccupancyConfig(BaseModel):
     persistence_window_sec: int = Field(default=2, ge=0)
-    empty_timeout_sec: int = Field(default=5, ge=0)
+    empty_timeout_sec: int = Field(default=10, ge=0)
 
 
 class DeviceRuleConfig(BaseModel):

@@ -186,9 +186,21 @@ function updateEnergyMetrics(m) {
   if (savedCost && m.saved_cost_usd !== undefined) savedCost.textContent = `$${m.saved_cost_usd.toFixed(2)}`;
   if (effPct && m.energy_efficiency_pct !== undefined) effPct.textContent = `${m.energy_efficiency_pct.toFixed(1)}%`;
 
-  // Periodically refresh 24-hour analytics chart every 30 seconds
+  // Update schedule mask status indicator in insights panel
+  const scheduleMaskEl = document.getElementById("insight-schedule-mask");
+  if (scheduleMaskEl && m.schedule_active !== undefined) {
+    if (m.schedule_active) {
+      scheduleMaskEl.textContent = "Business Schedule Active";
+      scheduleMaskEl.className = "text-sky-300 font-semibold";
+    } else {
+      scheduleMaskEl.textContent = "Off-Schedule (No Baseline)";
+      scheduleMaskEl.className = "text-zinc-500 font-semibold";
+    }
+  }
+
+  // Periodically refresh 24-hour analytics chart every 5 seconds
   const now = Date.now();
-  if (now - lastAnalyticsFetch > 30000) {
+  if (now - lastAnalyticsFetch > 5000) {
     lastAnalyticsFetch = now;
     fetchAnalyticsData();
   }
@@ -231,7 +243,17 @@ async function fetchAnalyticsData() {
       const peakSavingsEl = document.getElementById("insight-peak-savings");
       if (peakSavingsEl) {
         const totSaved = dailyData.total_kwh_saved || 0;
-        peakSavingsEl.textContent = totSaved > 0 ? `${totSaved.toFixed(2)} kWh Saved Today` : `0.00 kWh (Logging 5-min intervals)`;
+        let savedLabel;
+        if (totSaved <= 0) {
+          savedLabel = `0.00 kWh (Logging intervals)`;
+        } else if (totSaved < 0.01) {
+          savedLabel = `${(totSaved * 1000).toFixed(1)} Wh Saved Today`;
+        } else if (totSaved < 1) {
+          savedLabel = `${totSaved.toFixed(4)} kWh Saved Today`;
+        } else {
+          savedLabel = `${totSaved.toFixed(2)} kWh Saved Today`;
+        }
+        peakSavingsEl.textContent = savedLabel;
       }
 
       const deviceListEl = document.getElementById("device-usage-list");
@@ -244,10 +266,19 @@ async function fetchAnalyticsData() {
           deviceListEl.innerHTML = devKeys.map(dev => {
             const hrs = usageHours[dev];
             const pct = Math.min(100, Math.round((hrs / 24.0) * 100));
+            let hrsLabel;
+            if (hrs < 0.1) {
+              const mins = (hrs * 60);
+              hrsLabel = mins < 1 ? `${(mins * 60).toFixed(0)}s` : `${mins.toFixed(1)} min`;
+            } else if (hrs < 1) {
+              hrsLabel = `${hrs.toFixed(2)} hrs`;
+            } else {
+              hrsLabel = `${hrs.toFixed(1)} hrs`;
+            }
             return `
               <div class="flex justify-between items-center">
                 <span class="font-bold text-zinc-200 capitalize">${dev}</span>
-                <span class="text-emerald-400 font-mono">${hrs.toFixed(1)} hrs (${pct}% of day)</span>
+                <span class="text-emerald-400 font-mono">${hrsLabel} (${pct < 1 && hrs > 0 ? '<1' : pct}% of day)</span>
               </div>
             `;
           }).join("");
@@ -280,15 +311,28 @@ async function toggleWeeklyModal() {
 }
 
 function updateForecast(forecast) {
-  const forecastEl = document.getElementById("stat-forecast");
-  if (!forecastEl || !forecast) return;
+  if (!forecast) return;
 
-  if (forecast.prewarm_hvac_recommended || forecast.prewarm_lighting_recommended) {
-    forecastEl.textContent = "Pre-warm Rec.";
-    forecastEl.className = "text-emerald-400 font-bold";
-  } else {
-    forecastEl.textContent = "Normal";
-    forecastEl.className = "text-amber-300";
+  const probEl = document.getElementById("forecast-prob");
+  const statusEl = document.getElementById("forecast-status");
+  const reasonEl = document.getElementById("forecast-reason");
+
+  const pct = Math.round((forecast.predicted_occupancy_probability || 0) * 100);
+
+  if (probEl) {
+    probEl.textContent = `${pct}%`;
+  }
+
+  if (statusEl) {
+    const rec = forecast.prewarm_hvac_recommended || forecast.prewarm_lighting_recommended;
+    statusEl.textContent = rec ? "Pre-warm Recommended" : "Normal Standby";
+    statusEl.className = rec
+      ? "text-xs font-semibold text-emerald-400"
+      : "text-xs font-semibold text-amber-300";
+  }
+
+  if (reasonEl && forecast.reason) {
+    reasonEl.textContent = forecast.reason;
   }
 }
 

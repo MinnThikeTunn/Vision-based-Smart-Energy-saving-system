@@ -4,14 +4,16 @@ analytics:
   electricity_rate_kwh: 0.15
   schedule:
     enabled: true
-    end_hour: 19
+    end_hour: 23
     operating_days:
     - 0
     - 1
     - 2
     - 3
     - 4
-    start_hour: 8
+    - 5
+    - 6
+    start_hour: 0
 camera:
   fps: 30
   height: 480

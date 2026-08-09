@@ -112,7 +112,7 @@ class EnergyAnalyticsEngine:
 
         for h in hourly:
             all_powers.append(h["peak_power_watts"])
-            if h["peak_power_watts"] > peak_power:
+            if h["peak_power_watts"] >= peak_power and h["peak_power_watts"] > 0:
                 peak_power = h["peak_power_watts"]
                 peak_hour = h["hour"]
 

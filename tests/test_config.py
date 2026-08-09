@@ -12,7 +12,7 @@ def test_default_config_loading(tmp_path):
     assert config.camera.fps == 30
     assert config.detector.confidence_threshold == 0.5
     assert config.occupancy.persistence_window_sec == 2
-    assert config.occupancy.empty_timeout_sec == 5
+    assert config.occupancy.empty_timeout_sec == 10
     assert config.devices == {}
     assert config.spatial_zones == []
 
