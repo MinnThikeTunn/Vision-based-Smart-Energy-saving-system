@@ -21,4 +21,8 @@
 * **Custom Virtual Device**: User-defined virtual electrical appliance entity characterized by a unique identifier, category/icon (Light, Fan, HVAC, Electronics, Custom), rated power draw (Watts), unoccupied shutdown delay (seconds), and optional per-device power ramp profile duration (seconds).
 * **Zero-Device Onboarding State**: Initial default system state when zero devices and zero spatial zones are configured. Baseline power accumulation remains idle (0 W) and the UI side panel presents an interactive 2-step setup wizard guiding device and zone creation.
 * **Room-Wide (Global) Device**: Custom virtual device that is not assigned to a specific spatial bounding box; its shutdown state machine is driven by overall room occupancy.
+* **Time-Series Energy Snapshot**: 5-minute interval record capturing incremental delta kWh (baseline and actual), instantaneous power draw (Watts), active custom virtual devices, occupant count, and business operating schedule mask status.
+* **24-Hour Energy Analytics Engine**: Aggregation module that compiles raw 5-minute interval snapshots into 24 hourly buckets (00:00–23:59) and daily summary metrics, preserving baseline schedule masking while accurately tracking off-schedule standby draw.
+* **Hourly Energy Summary**: Consolidated 60-minute analytics record containing actual kWh, baseline kWh, net saved kWh, peak power (Watts), average power (Watts), and dynamic per-device operational runtime hours.
+
 

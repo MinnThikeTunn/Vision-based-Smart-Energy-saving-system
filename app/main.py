@@ -17,6 +17,7 @@ from prometheus_client import make_asgi_app, CONTENT_TYPE_LATEST
 from app.api.config_router import router as config_router
 from app.api.video_router import router as video_router
 from app.api.ws_router import router as ws_router
+from app.api.analytics_router import router as analytics_router
 from app.telemetry.metrics import get_metrics_registry
 
 
@@ -33,6 +34,8 @@ app = FastAPI(
 app.include_router(config_router)
 app.include_router(video_router)
 app.include_router(ws_router)
+app.include_router(analytics_router)
+
 
 # Mount static files for dashboard
 STATIC_DIR = Path(__file__).parent / "static"

@@ -88,9 +88,11 @@ class EnergyCalculator:
         if is_active_schedule:
             self.cumulative_kwh_baseline += (baseline_power_watts / 1000.0) * elapsed_hours
 
-        # Actual energy includes device consumption + continuous edge compute server power draw
         total_actual_watts = actual_power_watts + self.edge_compute_watts
         self.cumulative_kwh_actual += (total_actual_watts / 1000.0) * elapsed_hours
+
+        # Active baseline power draw according to operating schedule
+        active_baseline_watts = baseline_power_watts if is_active_schedule else 0.0
 
         # Net saved kWh formula (subtracting edge compute overhead)
         saved_kwh = max(0.0, self.cumulative_kwh_baseline - self.cumulative_kwh_actual)
@@ -104,9 +106,11 @@ class EnergyCalculator:
         )
 
         return {
-            "current_power_watts": round(actual_power_watts, 1),
+            "current_power_watts": round(total_actual_watts, 1),
+            "device_power_watts": round(actual_power_watts, 1),
             "edge_compute_watts": round(self.edge_compute_watts, 1),
-            "baseline_power_watts": round(baseline_power_watts, 1),
+            "baseline_power_watts": round(active_baseline_watts, 1),
+            "rated_baseline_watts": round(baseline_power_watts, 1),
             "cumulative_kwh_baseline": round(self.cumulative_kwh_baseline, 4),
             "cumulative_kwh_actual": round(self.cumulative_kwh_actual, 4),
             "saved_kwh": round(saved_kwh, 4),
@@ -115,4 +119,5 @@ class EnergyCalculator:
             "energy_efficiency_pct": round(efficiency_pct, 1),
             "schedule_active": is_active_schedule,
         }
+
 
