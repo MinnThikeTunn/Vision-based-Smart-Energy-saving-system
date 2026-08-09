@@ -72,3 +72,15 @@
 - [2026-08-09T16:30:16.311Z] Modified file: `app\config\settings.yaml` - Pending specialist committee & Ultimate Judge review.
 - [2026-08-09T16:34:25.940Z] Modified file: `app\static\index.html` - Pending specialist committee & Ultimate Judge review.
 - [2026-08-09T16:45:27.735Z] Modified file: `app\static\index.html` - Pending specialist committee & Ultimate Judge review.
+- [2026-08-09T17:20:01.901Z] Modified file: `tests\test_vision_pipeline.py` - Pending specialist committee & Ultimate Judge review.
+- [2026-08-09T17:21:08.988Z] Modified file: `app\detector\person_detector.py` - Pending specialist committee & Ultimate Judge review.
+- [2026-08-09T17:31:17.251Z] Modified file: `tests\test_iot_handoff.py` - Pending specialist committee & Ultimate Judge review.
+- [2026-08-09T17:32:56.146Z] Modified file: `app\analytics\report_generator.py` - Pending specialist committee & Ultimate Judge review.
+- [2026-08-09T17:33:06.814Z] Modified file: `app\api\config_router.py` - Pending specialist committee & Ultimate Judge review.
+- [2026-08-09T17:33:54.766Z] Modified file: `docs\iot_handoff.md` - Pending specialist committee & Ultimate Judge review.
+- [2026-08-09T17:35:18.063Z] Modified file: `app\analytics\report_generator.py` - Pending specialist committee & Ultimate Judge review.
+- [2026-08-09T17:36:43.789Z] Modified file: `app\analytics\report_generator.py` - Pending specialist committee & Ultimate Judge review.
+- [2026-08-09T17:42:09.313Z] Modified file: `app\api\config_router.py` - Pending specialist committee & Ultimate Judge review.
+- [2026-08-09T17:42:32.096Z] Modified file: `app\static\index.html` - Pending specialist committee & Ultimate Judge review.
+- [2026-08-09T17:42:39.105Z] Modified file: `tests\test_iot_handoff.py` - Pending specialist committee & Ultimate Judge review.
+- [2026-08-09T17:50:51.987Z] Modified file: `docs\feature_plan_cumulative_heatmap.md` - Pending specialist committee & Ultimate Judge review.
