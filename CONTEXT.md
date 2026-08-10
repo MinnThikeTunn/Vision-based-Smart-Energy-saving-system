@@ -23,6 +23,12 @@
 * **Room-Wide (Global) Device**: Custom virtual device that is not assigned to a specific spatial bounding box; its shutdown state machine is driven by overall room occupancy.
 * **Time-Series Energy Snapshot**: 5-minute interval record capturing incremental delta kWh (baseline and actual), instantaneous power draw (Watts), active custom virtual devices, occupant count, and business operating schedule mask status.
 * **24-Hour Energy Analytics Engine**: Aggregation module that compiles raw 5-minute interval snapshots into 24 hourly buckets (00:00–23:59) and daily summary metrics, preserving baseline schedule masking while accurately tracking off-schedule standby draw.
-* **Hourly Energy Summary**: Consolidated 60-minute analytics record containing actual kWh, baseline kWh, net saved kWh, peak power (Watts), average power (Watts), and dynamic per-device operational runtime hours.
+* **Cumulative Spatial Occupancy Heatmap**: 2D float32 spatial density matrix accumulating person footprint locations over time into spatial activity zones.
+* **Footprint Center Splatting**: Gaussian kernel density distribution applied at bottom-center $(x_c, y_{max})$ of person bounding boxes to track floor position and dwell locations.
+* **Fixed Absolute Density Scale**: Normalization of accumulated density against a fixed maximum threshold (person-seconds of presence) ensuring consistent color mapping across high and low activity sessions.
+* **Multi-Channel Temporal Accumulator**: Parallel accumulator engine maintaining separate memory channels (`Instant ~10s`, `5-Minute Density`, `Session/Shift Density`) simultaneously in volatile RAM.
+* **Zone Spatial Utilization Rate**: Percentage of a spatial zone's grid area exceeding baseline occupancy density thresholds.
+* **Headless Spatial Heatmap Grid**: Synthetic dark grid background used in Headless Privacy Mode to visualize heatmap density without rendering raw camera video frames.
+* **Hourly Heatmap Snapshot**: Periodically persisted PNG rendering of spatial density saved to storage for facility auditing and energy report export.
 
 

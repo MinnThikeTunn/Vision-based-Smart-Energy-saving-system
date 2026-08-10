@@ -212,19 +212,87 @@
                   <button
                     id="btn-toggle-heatmap"
                     onclick="toggleHeatmap()"
-                    class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition-all-300 flex items-center gap-1.5"
+                    class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition-all-300 flex items-center gap-1.5 cursor-pointer"
                   >
                     <i class="fa-solid fa-fire text-amber-400"></i> Heatmap OFF
                   </button>
                   <button
                     id="btn-toggle-fullscreen"
                     onclick="toggleFullscreen()"
-                    class="px-3 py-1 rounded-full text-xs font-semibold bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 hover:text-white border border-zinc-700/60 transition-all-300 flex items-center gap-1.5 cursor-pointer"
+                    class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 hover:text-white border border-zinc-700/60 transition-all-300 flex items-center gap-1.5 cursor-pointer"
                     title="Maximize to Full Screen"
                   >
                     <i id="icon-fullscreen" class="fa-solid fa-expand text-emerald-400"></i>
                     <span id="label-fullscreen">Maximize</span>
                   </button>
+                </div>
+              </div>
+
+              <!-- Perplexity-Styled Heatmap Control & Telemetry Panel (Hidden when OFF) -->
+              <div id="heatmap-control-panel" class="hidden px-6 py-3.5 bg-zinc-950/90 border-b border-zinc-800/60 space-y-3">
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                  <!-- Time Window Selector -->
+                  <div class="flex items-center gap-2">
+                    <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Memory Window:</label>
+                    <select
+                      id="select-heatmap-window"
+                      onchange="onHeatmapWindowChange(this.value)"
+                      class="bg-zinc-900 border border-zinc-700/60 rounded-xl px-3 py-1 text-xs text-zinc-200 font-semibold focus:outline-none focus:border-amber-400 transition-all-300 cursor-pointer"
+                    >
+                      <option value="instant">Real-Time Instant (~10s)</option>
+                      <option value="5m" selected>5-Min Activity Density</option>
+                      <option value="session">Full Shift / Session</option>
+                    </select>
+                  </div>
+
+                  <!-- Opacity Slider -->
+                  <div class="flex items-center gap-2">
+                    <label class="text-xs font-bold text-zinc-400 uppercase tracking-wider">Opacity:</label>
+                    <input
+                      type="range"
+                      id="slider-heatmap-alpha"
+                      min="0.1"
+                      max="0.7"
+                      step="0.05"
+                      value="0.3"
+                      oninput="onHeatmapAlphaChange(this.value)"
+                      class="w-24 accent-amber-400 cursor-pointer"
+                    />
+                    <span id="label-heatmap-alpha" class="text-xs font-bold text-amber-300 w-8">30%</span>
+                  </div>
+
+                  <!-- Control Buttons -->
+                  <div class="flex items-center gap-2">
+                    <button
+                      onclick="resetHeatmapBuffer()"
+                      class="px-3 py-1 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-all-300 flex items-center gap-1.5 cursor-pointer"
+                      title="Clear Heatmap Accumulator Buffer"
+                    >
+                      <i class="fa-solid fa-rotate-left text-amber-400"></i> Clear
+                    </button>
+                    <button
+                      onclick="exportHeatmapSnapshot()"
+                      class="px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-all-300 flex items-center gap-1.5 cursor-pointer"
+                      title="Export PNG Heatmap Snapshot"
+                    >
+                      <i class="fa-solid fa-download text-emerald-400"></i> Export PNG
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Density Legend & Zone Coverage Row -->
+                <div class="flex items-center justify-between flex-wrap gap-4 pt-1">
+                  <!-- Visual Density Gradient Legend -->
+                  <div class="flex items-center gap-2 text-[11px] font-semibold text-zinc-400">
+                    <span>Low Dwell</span>
+                    <div class="w-32 h-2.5 rounded-full bg-gradient-to-r from-blue-600 via-yellow-400 to-red-600 shadow-inner"></div>
+                    <span>High Dwell</span>
+                  </div>
+
+                  <!-- Real-time Zone Spatial Utilization Coverage Badges -->
+                  <div id="heatmap-zone-stats-container" class="flex items-center gap-2 flex-wrap">
+                    <!-- Dynamic badges populated via JS -->
+                  </div>
                 </div>
               </div>
               <div
@@ -1050,6 +1118,8 @@
       let ws;
       let currentDeviceStates = {};
       let isHeatmapActive = false;
+      let heatmapWindow = "5m";
+      let heatmapAlpha = 0.3;
 
       let isDrawing = false;
       let startX, startY, endX, endY;
@@ -1084,21 +1154,83 @@
         else backdrop.classList.add("hidden");
       }
 
+      function updateHeatmapStream() {
+        const videoStream = document.getElementById("video-stream");
+        if (!videoStream) return;
+        if (isHeatmapActive) {
+          videoStream.src = `/api/video_feed?heatmap=true&window=${heatmapWindow}&alpha=${heatmapAlpha}`;
+        } else {
+          videoStream.src = "/api/video_feed";
+        }
+        fetchHeatmapStats();
+      }
+
       function toggleHeatmap() {
         isHeatmapActive = !isHeatmapActive;
         const btn = document.getElementById("btn-toggle-heatmap");
-        const videoStream = document.getElementById("video-stream");
+        const panel = document.getElementById("heatmap-control-panel");
         if (isHeatmapActive) {
-          if (videoStream) videoStream.src = "/api/video_feed?heatmap=true";
+          if (panel) panel.classList.remove("hidden");
           btn.className =
-            "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-zinc-950 border border-amber-400 shadow-lg shadow-amber-500/20 transition-all-300 flex items-center gap-1.5";
+            "px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-500 text-zinc-950 border border-amber-400 shadow-lg shadow-amber-500/20 transition-all-300 flex items-center gap-1.5 cursor-pointer";
           btn.innerHTML = `<i class="fa-solid fa-fire text-zinc-950"></i> Heatmap ON`;
         } else {
-          if (videoStream) videoStream.src = "/api/video_feed";
+          if (panel) panel.classList.add("hidden");
           btn.className =
-            "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition-all-300 flex items-center gap-1.5";
+            "px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition-all-300 flex items-center gap-1.5 cursor-pointer";
           btn.innerHTML = `<i class="fa-solid fa-fire text-amber-400"></i> Heatmap OFF`;
         }
+        updateHeatmapStream();
+      }
+
+      function onHeatmapWindowChange(val) {
+        heatmapWindow = val;
+        updateHeatmapStream();
+      }
+
+      function onHeatmapAlphaChange(val) {
+        heatmapAlpha = parseFloat(val);
+        const label = document.getElementById("label-heatmap-alpha");
+        if (label) label.textContent = `${Math.round(heatmapAlpha * 100)}%`;
+        updateHeatmapStream();
+      }
+
+      async function resetHeatmapBuffer() {
+        try {
+          await fetch(`/api/heatmap/reset?window=${heatmapWindow}`, { method: "POST" });
+          fetchHeatmapStats();
+        } catch (e) {}
+      }
+
+      function exportHeatmapSnapshot() {
+        window.open(`/api/heatmap/export?window=${heatmapWindow}`, "_blank");
+      }
+
+      async function fetchHeatmapStats() {
+        if (!isHeatmapActive) return;
+        try {
+          const res = await fetch(`/api/heatmap/stats?window=${heatmapWindow}`);
+          if (res.ok) {
+            const data = await res.json();
+            renderHeatmapStats(data.spatial_utilization || {});
+          }
+        } catch (e) {}
+      }
+
+      function renderHeatmapStats(stats) {
+        const container = document.getElementById("heatmap-zone-stats-container");
+        if (!container) return;
+        let html = "";
+        for (const [zone, pct] of Object.entries(stats)) {
+          html += `
+            <div class="px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center gap-2 text-xs font-semibold">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span class="text-zinc-400 capitalize">${zone}:</span>
+              <span class="text-emerald-300 font-bold">${pct}%</span>
+            </div>
+          `;
+        }
+        container.innerHTML = html;
       }
 
       function updateFullscreenUI(isFullscreen) {
