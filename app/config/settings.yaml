@@ -24,6 +24,14 @@ detector:
   device: cpu
   model_name: yolov8n.pt
 devices:
+  ff:
+    assigned_zone: 'Zone: ff'
+    category: custom
+    empty_shutdown_timeout_sec: 10
+    enabled: true
+    name: ff
+    power_ramp_sec: 1.5
+    rated_wattage: 50.0
   hh:
     assigned_zone: 'Zone: hh'
     category: custom
@@ -66,3 +74,11 @@ spatial_zones:
   - 0.32
   - 0.54
   name: 'Zone: hh'
+- assigned_devices:
+  - ff
+  bbox:
+  - 0.0
+  - 0.79
+  - 0.44
+  - 1.0
+  name: 'Zone: ff'

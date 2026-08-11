@@ -230,6 +230,10 @@ async function fetchAnalyticsData() {
       powerChart.data.datasets[0].backgroundColor = actualColors;
       powerChart.data.datasets[1].data = baselines;
       powerChart.data.datasets[1].backgroundColor = baselineColors;
+
+      const maxVal = Math.max(...actuals, ...baselines, 0);
+      powerChart.options.scales.y.suggestedMax = maxVal > 0 ? maxVal * 1.15 : 0.005;
+
       powerChart.update();
     }
 
@@ -389,9 +393,16 @@ function initChart() {
         },
         y: {
           beginAtZero: true,
-          suggestedMax: 0.5,
+          suggestedMax: 0.005,
           grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: '#a1a1aa', font: { size: 10 } },
+          ticks: {
+            color: '#a1a1aa',
+            font: { size: 10 },
+            callback: function(val) {
+              if (val < 0.01 && val > 0) return val.toFixed(4);
+              return val.toFixed(3);
+            }
+          },
           title: { display: true, text: 'Energy (kWh)', color: '#71717a', font: { size: 10 } }
         }
       },
