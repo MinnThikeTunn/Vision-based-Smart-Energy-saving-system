@@ -29,7 +29,8 @@ def get_vision_pipeline() -> VisionPipeline:
             )
             print(f"Successfully loaded YOLOPersonDetector using model {detector_cfg.model_name}")
         except Exception as e:
-            print(f"Failed to load YOLO detector, falling back to DummyDetector: {e}")
+            print(f"[WARNING] Failed to load YOLO detector ({e}). Falling back to DummyDetector.")
+            print("[HINT] Ensure uvicorn is started using the project virtual environment: .venv\\Scripts\\uvicorn.exe app.main:app --reload")
             detector = DummyDetector()
 
         _pipeline_instance = VisionPipeline(
@@ -60,36 +61,109 @@ def set_vision_pipeline(pipeline: VisionPipeline) -> None:
 
 
 @router.get("/video_feed")
-def video_feed():
+def video_feed(heatmap: bool = False, window: str = "instant", alpha: float = 0.3):
     from app.config.loader import load_settings
     settings = load_settings()
-    
-    # Headless Automation Mode: disable video stream if configured
-    if settings.privacy.headless_mode:
-        placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
-        cv2.putText(
-            placeholder,
-            "Headless Mode Active",
-            (170, 220),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.8,
-            (0, 255, 200),
-            2,
-        )
-        cv2.putText(
-            placeholder,
-            "(Video Stream Disabled for Privacy)",
-            (120, 260),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.6,
-            (200, 200, 200),
-            1,
-        )
-        _, jpeg = cv2.imencode(".jpg", placeholder)
-        return Response(content=jpeg.tobytes(), media_type="image/jpeg")
-
     pipeline = get_vision_pipeline()
+
+    # Headless Automation Mode: privacy interaction
+    if settings.privacy.headless_mode:
+        if heatmap:
+            # Render Headless Dark Grid Heatmap Overlay
+            acc_map = pipeline._get_accumulator_matrix(window)
+            grid = np.zeros((480, 640, 3), dtype=np.uint8)
+            # Add subtle grid lines for spatial reference
+            for y in range(0, 480, 40):
+                cv2.line(grid, (0, y), (640, y), (30, 35, 40), 1)
+            for x in range(0, 640, 40):
+                cv2.line(grid, (x, 0), (x, 480), (30, 35, 40), 1)
+
+            cv2.putText(grid, "HEADLESS HEATMAP AUDIT GRID", (150, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 200), 2)
+
+            if acc_map is not None and acc_map.size > 0:
+                norm = np.clip((acc_map / pipeline.max_saturation_sec) * 255.0, 0, 255).astype(np.uint8)
+                heatmap_overlay = cv2.applyColorMap(norm, cv2.COLORMAP_JET)
+                grid = cv2.addWeighted(grid, 0.5, heatmap_overlay, 0.5, 0)
+
+            _, jpeg = cv2.imencode(".jpg", grid)
+            return Response(content=jpeg.tobytes(), media_type="image/jpeg")
+        else:
+            placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
+            cv2.putText(
+                placeholder,
+                "Headless Mode Active",
+                (170, 220),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.8,
+                (0, 255, 200),
+                2,
+            )
+            cv2.putText(
+                placeholder,
+                "(Video Stream Disabled for Privacy)",
+                (120, 260),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (200, 200, 200),
+                1,
+            )
+            _, jpeg = cv2.imencode(".jpg", placeholder)
+            return Response(content=jpeg.tobytes(), media_type="image/jpeg")
+
     return StreamingResponse(
-        pipeline.generate_mjpeg_stream(),
+        pipeline.generate_mjpeg_stream(draw_heatmap=heatmap, window=window, alpha=alpha),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
+
+
+@router.post("/heatmap/reset")
+def reset_heatmap(window: str = "all"):
+    pipeline = get_vision_pipeline()
+    pipeline.reset_heatmap_accumulator(window=window)
+    return {"status": "ok", "message": f"Heatmap accumulator buffer ({window}) reset successfully."}
+
+
+@router.get("/heatmap/stats")
+def heatmap_stats(window: str = "5m"):
+    from app.config.loader import load_settings
+    settings = load_settings()
+    pipeline = get_vision_pipeline()
+    stats = pipeline.get_zone_heatmap_stats(spatial_zones=settings.spatial_zones, window=window)
+    return {"window": window, "spatial_utilization": stats}
+
+
+@router.get("/heatmap/export")
+def export_heatmap(window: str = "5m"):
+    from pathlib import Path
+    from datetime import datetime
+
+    pipeline = get_vision_pipeline()
+    acc_map = pipeline._get_accumulator_matrix(window)
+
+    h, w = (480, 640)
+    if acc_map is not None and acc_map.size > 0:
+        h, w = acc_map.shape[:2]
+        norm = np.clip((acc_map / pipeline.max_saturation_sec) * 255.0, 0, 255).astype(np.uint8)
+    else:
+        norm = np.zeros((h, w), dtype=np.uint8)
+
+    heatmap_overlay = cv2.applyColorMap(norm, cv2.COLORMAP_JET)
+
+    # Save hourly snapshot to storage/heatmaps/
+    storage_dir = Path("storage/heatmaps")
+    storage_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"heatmap_{timestamp}_{window}.png"
+    filepath = storage_dir / filename
+    cv2.imwrite(str(filepath), heatmap_overlay)
+
+    ret, png_bytes = cv2.imencode(".png", heatmap_overlay)
+    if not ret:
+        return Response(content=b"", media_type="image/png")
+
+    return Response(
+        content=png_bytes.tobytes(),
+        media_type="image/png",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+

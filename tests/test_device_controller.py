@@ -4,9 +4,11 @@ from app.device_controller.simulation import SimulationController
 def test_simulation_controller_initial_state():
     controller = SimulationController(latency_ms=0, power_ramp_sec=0)
     states = controller.get_device_states()
-    assert states["light"] == "OFF"
-    assert states["fan"] == "OFF"
-    assert states["ac"] == "OFF"
+    assert states == {}
+    
+    controller.register_device("desk_lamp", power_ramp_sec=1.5)
+    assert controller.get_device_states()["desk_lamp"] == "OFF"
+
 
 
 def test_simulation_controller_toggle_and_logs():

@@ -43,5 +43,8 @@ def test_facilities_report_generator():
 def test_prometheus_metrics():
     registry = get_metrics_registry()
     metrics_text = registry.generate_prometheus_metrics()
-    assert "vision_fps" in metrics_text
-    assert "occupancy_person_count" in metrics_text
+    assert b"vision_fps" in metrics_text
+    assert b"occupancy_person_count" in metrics_text
+
+
+

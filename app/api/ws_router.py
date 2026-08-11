@@ -11,6 +11,8 @@ from app.detector.pipeline import VisionPipeline
 from app.device_controller.base import BaseDeviceController
 from app.device_controller.simulation import SimulationController
 from app.analytics.energy_calculator import EnergyCalculator
+from app.analytics.energy_logger import EnergyLogger
+from app.analytics.energy_engine import EnergyAnalyticsEngine
 from app.analytics.occupancy_forecast import OccupancyForecaster
 from app.telemetry.metrics import get_metrics_registry
 
@@ -19,10 +21,17 @@ router = APIRouter(tags=["websocket"])
 _device_controller: BaseDeviceController = SimulationController()
 _state_machine: OccupancyStateMachine = OccupancyStateMachine()
 _device_matrix: DeviceControlMatrix = DeviceControlMatrix(
-    device_timeouts={"light": 180, "fan": 600, "ac": 600}
+    device_timeouts={}, zone_device_map={}
 )
 _energy_calculator: EnergyCalculator = EnergyCalculator()
+_energy_logger: EnergyLogger = EnergyLogger()
+_analytics_engine: EnergyAnalyticsEngine = EnergyAnalyticsEngine(logger=_energy_logger)
 _forecaster: OccupancyForecaster = OccupancyForecaster()
+
+# Recover cumulative baseline and actual energy from today's CSV logs
+_recovered = _energy_logger.recover_todays_energy()
+_energy_calculator.cumulative_kwh_baseline = _recovered.get("cumulative_kwh_baseline", 0.0)
+_energy_calculator.cumulative_kwh_actual = _recovered.get("cumulative_kwh_actual", 0.0)
 
 
 class ConnectionManager:
@@ -54,6 +63,15 @@ def get_energy_calculator() -> EnergyCalculator:
     return _energy_calculator
 
 
+def get_energy_logger() -> EnergyLogger:
+    return _energy_logger
+
+
+def get_analytics_engine() -> EnergyAnalyticsEngine:
+    return _analytics_engine
+
+
+
 def build_telemetry_payload(pipeline: VisionPipeline | None = None) -> Dict[str, Any]:
     from app.config.loader import load_settings
     try:
@@ -63,17 +81,35 @@ def build_telemetry_payload(pipeline: VisionPipeline | None = None) -> Dict[str,
 
         device_timeouts = {}
         wattages = {}
+        current_config_keys = set()
         for device_name, rule in settings.devices.items():
             if rule.enabled:
-                device_timeouts[device_name] = rule.empty_shutdown_timeout_sec
-                wattages[device_name] = rule.rated_wattage
+                device_key = device_name.lower()
+                current_config_keys.add(device_key)
+                device_timeouts[device_key] = rule.empty_shutdown_timeout_sec
+                wattages[device_key] = rule.rated_wattage
+                if hasattr(_device_controller, "register_device"):
+                    _device_controller.register_device(device_key, rule.power_ramp_sec)
+
+        # Unregister deleted devices
+        if hasattr(_device_controller, "unregister_device"):
+            existing_states = _device_controller.get_device_states()
+            for dev_key in list(existing_states.keys()):
+                if dev_key not in current_config_keys:
+                    _device_controller.unregister_device(dev_key)
+
+        zone_map = {}
+        for zone in settings.spatial_zones:
+            zone_map[zone.name] = [d.lower() for d in zone.assigned_devices]
 
         _device_matrix.device_timeouts = device_timeouts
+        _device_matrix.zone_device_map = zone_map
         _energy_calculator.device_wattages = wattages
         _energy_calculator.electricity_rate_kwh = settings.analytics.electricity_rate_kwh
         _energy_calculator.co2_per_kwh_kg = settings.analytics.co2_per_kwh_kg
     except Exception as e:
         print(f"Error updating config in telemetry payload: {e}")
+
 
     raw_count = 0
     active_zones = None
@@ -104,6 +140,15 @@ def build_telemetry_payload(pipeline: VisionPipeline | None = None) -> Dict[str,
 
     # Calculate real-time energy & ROI analytics
     energy_metrics = _energy_calculator.update(current_states, current_telemetry)
+
+    # Log 5-minute time-series snapshot for 24-hour analytics
+    if _energy_logger.should_log():
+        _energy_logger.log_snapshot(
+            energy_metrics=energy_metrics,
+            device_states=current_states,
+            occupant_count=snapshot.occupant_count,
+        )
+
 
     # Calculate occupancy forecast
     forecast = _forecaster.predict_next_hour()

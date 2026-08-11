@@ -1,11 +1,31 @@
 import math
 from typing import Dict, List, Tuple
 
+try:
+    from scipy.optimize import linear_sum_assignment  # type: ignore[import-untyped]
+except ImportError:
+    linear_sum_assignment = None
+
+
+def compute_iou(box1: List[float], box2: List[float]) -> float:
+    """Calculate Intersection over Union (IoU) between two bounding boxes [x1, y1, x2, y2]."""
+    x1 = max(box1[0], box2[0])
+    y1 = max(box1[1], box2[1])
+    x2 = min(box1[2], box2[2])
+    y2 = min(box1[3], box2[3])
+
+    intersection = max(0.0, x2 - x1) * max(0.0, y2 - y1)
+    area1 = max(0.0, box1[2] - box1[0]) * max(0.0, box1[3] - box1[1])
+    area2 = max(0.0, box2[2] - box2[0]) * max(0.0, box2[3] - box2[1])
+    union = area1 + area2 - intersection
+
+    return intersection / union if union > 0 else 0.0
+
 
 class CentroidTracker:
     """
-    Lightweight IoU & Centroid Multi-Object Tracker for persistent person IDs.
-    Prevents temporary flickering and ID switching across video frames.
+    Hungarian IoU & Centroid Multi-Object Tracker (Version 3.0).
+    Uses Hungarian algorithm matching + IoU metrics to eliminate identity swaps when occupants cross paths.
     """
 
     def __init__(self, max_disappeared: int = 15, max_distance: float = 100.0) -> None:
@@ -53,39 +73,54 @@ class CentroidTracker:
         else:
             object_ids = list(self.objects.keys())
             object_centroids = list(self.objects.values())
+            object_boxes = list(self.boxes.values())
 
-            # Distance matrix between existing centroids and input centroids
-            distances = []
-            for obj_c in object_centroids:
+            # Combined cost matrix (Distance penalty minus IoU bonus)
+            cost_matrix = []
+            for r in range(len(object_ids)):
                 row = []
-                for in_c in input_centroids:
-                    dist = math.hypot(obj_c[0] - in_c[0], obj_c[1] - in_c[1])
-                    row.append(dist)
-                distances.append(row)
+                for c in range(len(rects)):
+                    dist = math.hypot(object_centroids[r][0] - input_centroids[c][0], object_centroids[r][1] - input_centroids[c][1])
+                    iou = compute_iou(object_boxes[r], rects[c])
+                    # Higher IoU reduces overall cost
+                    cost = dist * (1.0 - 0.5 * iou)
+                    row.append(cost)
+                cost_matrix.append(row)
 
-            # Simple greedy assignment
             used_rows = set()
             used_cols = set()
 
-            # Flatten and sort distance pairs
-            pairs = []
-            for r in range(len(object_ids)):
-                for c in range(len(input_centroids)):
-                    pairs.append((distances[r][c], r, c))
-            pairs.sort(key=lambda x: x[0])
+            if linear_sum_assignment is not None:
+                row_ind, col_ind = linear_sum_assignment(cost_matrix)
+                for r, c in zip(row_ind, col_ind):
+                    if cost_matrix[r][c] > self.max_distance:
+                        continue
+                    object_id = object_ids[r]
+                    self.objects[object_id] = input_centroids[c]
+                    self.boxes[object_id] = rects[c]
+                    self.disappeared[object_id] = 0
+                    used_rows.add(r)
+                    used_cols.add(c)
+            else:
+                # Greedy fallback
+                pairs = []
+                for r in range(len(object_ids)):
+                    for c in range(len(input_centroids)):
+                        pairs.append((cost_matrix[r][c], r, c))
+                pairs.sort(key=lambda x: x[0])
 
-            for dist, r, c in pairs:
-                if r in used_rows or c in used_cols:
-                    continue
-                if dist > self.max_distance:
-                    continue
+                for cost, r, c in pairs:
+                    if r in used_rows or c in used_cols:
+                        continue
+                    if cost > self.max_distance:
+                        continue
 
-                object_id = object_ids[r]
-                self.objects[object_id] = input_centroids[c]
-                self.boxes[object_id] = rects[c]
-                self.disappeared[object_id] = 0
-                used_rows.add(r)
-                used_cols.add(c)
+                    object_id = object_ids[r]
+                    self.objects[object_id] = input_centroids[c]
+                    self.boxes[object_id] = rects[c]
+                    self.disappeared[object_id] = 0
+                    used_rows.add(r)
+                    used_cols.add(c)
 
             unused_rows = set(range(len(object_ids))) - used_rows
             unused_cols = set(range(len(input_centroids))) - used_cols
@@ -107,3 +142,4 @@ class CentroidTracker:
             cx, cy = self.objects[obj_id]
             result[obj_id] = list(box[:4]) + [float(cx), float(cy)]
         return result
+

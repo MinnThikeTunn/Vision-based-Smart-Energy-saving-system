@@ -66,11 +66,26 @@ def download_facilities_report() -> Response:
 
 
 @router.get("/reports/iot_handoff")
-def download_iot_handoff_report() -> Response:
-    markdown_content = IoTHandoffReportGenerator.generate_iot_handoff_report()
-    filename = "iot_hardware_handoff_report.md"
+def download_iot_handoff_report(format: str = "pdf") -> Response:
+    if format.lower() == "md":
+        markdown_content = IoTHandoffReportGenerator.generate_iot_handoff_report()
+        filename = "iot_hardware_handoff_report.md"
+        return Response(
+            content=markdown_content,
+            media_type="text/markdown; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    return download_iot_handoff_report_pdf()
+
+
+
+@router.get("/reports/iot_handoff/pdf")
+def download_iot_handoff_report_pdf() -> Response:
+    pdf_bytes = IoTHandoffReportGenerator.generate_pdf_report()
+    filename = "iot_hardware_handoff_report.pdf"
     return Response(
-        content=markdown_content,
-        media_type="text/markdown; charset=utf-8",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+

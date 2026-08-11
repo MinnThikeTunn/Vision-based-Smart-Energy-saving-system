@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 
 
@@ -34,18 +34,31 @@ class SpatialZoneConfig(BaseModel):
 
 class OccupancyConfig(BaseModel):
     persistence_window_sec: int = Field(default=2, ge=0)
-    empty_timeout_sec: int = Field(default=5, ge=0)
+    empty_timeout_sec: int = Field(default=10, ge=0)
 
 
 class DeviceRuleConfig(BaseModel):
     enabled: bool = Field(default=True)
-    empty_shutdown_timeout_sec: int = Field(default=5, ge=0)
+    name: str = Field(default="", description="Display name for custom device")
+    category: str = Field(default="custom", description="Category: light, fan, ac, electronics, custom")
+    empty_shutdown_timeout_sec: int = Field(default=10, ge=0)
     rated_wattage: float = Field(default=50.0, ge=0.0, description="Power rating in Watts")
+    power_ramp_sec: float = Field(default=1.5, ge=0.0, description="Custom power ramp duration in seconds")
+    assigned_zone: Optional[str] = Field(default=None, description="Assigned spatial zone identifier (None for global room-wide)")
+
+
+class OperatingScheduleConfig(BaseModel):
+    enabled: bool = Field(default=True, description="Enable operating schedule mask")
+    operating_days: List[int] = Field(default_factory=lambda: [0, 1, 2, 3, 4], description="Operating days 0=Mon..6=Sun")
+    start_hour: int = Field(default=8, ge=0, le=23, description="Day start hour 0..23")
+    end_hour: int = Field(default=19, ge=0, le=23, description="Day end hour 0..23")
 
 
 class AnalyticsConfig(BaseModel):
     electricity_rate_kwh: float = Field(default=0.15, ge=0.0, description="Cost per kWh in USD")
     co2_per_kwh_kg: float = Field(default=0.42, ge=0.0, description="CO2 emission factor kg/kWh")
+    edge_compute_watts: float = Field(default=30.0, ge=0.0, description="Continuous power draw of edge server in Watts")
+    schedule: OperatingScheduleConfig = Field(default_factory=OperatingScheduleConfig)
 
 
 class SystemConfiguration(BaseModel):
@@ -55,24 +68,6 @@ class SystemConfiguration(BaseModel):
     simulation: SimulationConfig = Field(default_factory=SimulationConfig)
     occupancy: OccupancyConfig = Field(default_factory=OccupancyConfig)
     analytics: AnalyticsConfig = Field(default_factory=AnalyticsConfig)
-    spatial_zones: List[SpatialZoneConfig] = Field(
-        default_factory=lambda: [
-            SpatialZoneConfig(
-                name="Zone A (Desk)",
-                bbox=[0.0, 0.0, 0.5, 1.0],
-                assigned_devices=["light", "fan"],
-            ),
-            SpatialZoneConfig(
-                name="Zone B (Transit)",
-                bbox=[0.5, 0.0, 1.0, 1.0],
-                assigned_devices=["ac"],
-            ),
-        ]
-    )
-    devices: Dict[str, DeviceRuleConfig] = Field(
-        default_factory=lambda: {
-            "light": DeviceRuleConfig(empty_shutdown_timeout_sec=5, rated_wattage=40.0),
-            "fan": DeviceRuleConfig(empty_shutdown_timeout_sec=10, rated_wattage=65.0),
-            "ac": DeviceRuleConfig(empty_shutdown_timeout_sec=10, rated_wattage=1200.0),
-        }
-    )
+    spatial_zones: List[SpatialZoneConfig] = Field(default_factory=list)
+    devices: Dict[str, DeviceRuleConfig] = Field(default_factory=dict)
+

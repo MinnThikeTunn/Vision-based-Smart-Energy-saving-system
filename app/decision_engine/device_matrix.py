@@ -22,10 +22,8 @@ class DeviceControlMatrix:
         zone_device_map e.g.: {'Zone A (Desk)': ['light', 'fan'], 'Zone B (Transit)': ['ac']}
         """
         self.device_timeouts = device_timeouts
-        self.zone_device_map = zone_device_map or {
-            "Zone A (Desk)": ["light", "fan"],
-            "Zone B (Transit)": ["ac"],
-        }
+        self.zone_device_map = zone_device_map if zone_device_map is not None else {}
+
 
     def evaluate(
         self,
@@ -66,6 +64,15 @@ class DeviceControlMatrix:
                             "reason": f"Zone vacant, shutting down device",
                         }
                     )
+                elif is_zone_active and empty_duration_sec >= timeout and current_state != "OFF":
+                    # Decoupled device timeout during room empty countdown
+                    actions.append(
+                        {
+                            "device_id": device_id,
+                            "action": "TURN_OFF",
+                            "reason": f"Device shutdown timeout reached ({empty_duration_sec:.0f}s >= {timeout:.0f}s)",
+                        }
+                    )
 
         elif room_state == RoomState.EMPTY:
             for device_id, timeout in self.device_timeouts.items():
@@ -78,5 +85,6 @@ class DeviceControlMatrix:
                             "reason": f"Room empty for {empty_duration_sec:.0f}s (timeout: {timeout:.0f}s)",
                         }
                     )
+
 
         return actions

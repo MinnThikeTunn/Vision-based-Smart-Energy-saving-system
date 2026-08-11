@@ -30,6 +30,17 @@ class VisionPipeline:
         self._boxes: list = []
         self._active_zones: list[str] = []
 
+        # Multi-Channel Heatmap Accumulator Buffers & Config
+        self._acc_instant: np.ndarray | None = None
+        self._acc_5m: np.ndarray | None = None
+        self._acc_session: np.ndarray | None = None
+        self.max_saturation_sec: float = 300.0
+
+        # Temporal Decay Factors (per frame tick at ~30 FPS)
+        self.alpha_instant: float = 0.95
+        self.alpha_5m: float = 0.998
+        self.alpha_session: float = 0.9999
+
         self.is_running: bool = False
         self._capture_thread: threading.Thread | None = None
         self._inference_thread: threading.Thread | None = None
@@ -105,6 +116,39 @@ class VisionPipeline:
                     anonymized[y1:y2, x1:x2] = cv2.GaussianBlur(roi, ksize, 30)
         return anonymized
 
+    def _splat_footprints(self, frame_shape: tuple[int, int], boxes: list) -> None:
+        """Splat Gaussian density at person footprint centers (x_c, y_max) into multi-channel accumulators."""
+        h, w = frame_shape[:2]
+        if self._acc_instant is None or self._acc_instant.shape != (h, w):
+            self._acc_instant = np.zeros((h, w), dtype=np.float32)
+            self._acc_5m = np.zeros((h, w), dtype=np.float32)
+            self._acc_session = np.zeros((h, w), dtype=np.float32)
+
+        # 1. Temporal decay on all channels
+        self._acc_instant *= self.alpha_instant
+        self._acc_5m *= self.alpha_5m
+        self._acc_session *= self.alpha_session
+
+        # 2. Gaussian splatting per detected footprint center
+        sigma = 25
+        for box in boxes:
+            b = box.get("bbox") if isinstance(box, dict) else box
+            if b and len(b) >= 4:
+                x1, y1, x2, y2 = map(int, b[:4])
+                cx = (x1 + x2) // 2
+                cy = y2  # Floor footprint center
+
+                x_min, x_max = max(0, cx - 3 * sigma), min(w, cx + 3 * sigma + 1)
+                y_min, y_max = max(0, cy - 3 * sigma), min(h, cy + 3 * sigma + 1)
+
+                if x_max > x_min and y_max > y_min:
+                    y_grid, x_grid = np.ogrid[y_min:y_max, x_min:x_max]
+                    gaussian = np.exp(-((x_grid - cx) ** 2 + (y_grid - cy) ** 2) / (2 * sigma ** 2))
+
+                    self._acc_instant[y_min:y_max, x_min:x_max] += gaussian
+                    self._acc_5m[y_min:y_max, x_min:x_max] += gaussian
+                    self._acc_session[y_min:y_max, x_min:x_max] += gaussian
+
     def _inference_loop(self) -> None:
         while self.is_running:
             frame_to_process = None
@@ -113,14 +157,22 @@ class VisionPipeline:
                     frame_to_process = self._raw_frame.copy()
 
             if frame_to_process is not None:
-                boxes, count, annotated = self.detector.detect(frame_to_process)
+                spatial_zones = []
+                try:
+                    from app.config.loader import load_settings
+                    spatial_zones = load_settings().spatial_zones
+                except Exception:
+                    pass
+
+                boxes, count, annotated = self.detector.detect(frame_to_process, spatial_zones=spatial_zones)
 
                 if self.anonymize_faces and len(boxes) > 0:
                     annotated = self._apply_anonymization(annotated, boxes)
 
-                active_zones = list(set(b["zone"] for b in boxes if isinstance(b, dict) and "zone" in b))
+                active_zones = list(set(b["zone"] for b in boxes if isinstance(b, dict) and b.get("zone")))
 
                 with self._lock:
+                    self._splat_footprints(frame_to_process.shape, boxes)
                     self._processed_frame = annotated
                     self._occupant_count = count
                     self._boxes = boxes
@@ -128,14 +180,90 @@ class VisionPipeline:
 
             time.sleep(1.0 / self.fps_target)
 
-    def get_latest_processed(self) -> tuple[np.ndarray | None, int, list[str]]:
+    def _get_accumulator_matrix(self, window: str = "instant") -> np.ndarray | None:
+        if window == "5m":
+            return self._acc_5m
+        elif window == "session":
+            return self._acc_session
+        return self._acc_instant
+
+    def get_latest_processed(
+        self,
+        draw_heatmap: bool = False,
+        window: str = "instant",
+        alpha: float = 0.3,
+    ) -> tuple[np.ndarray | None, int, list[str]]:
         with self._lock:
             frame = self._processed_frame.copy() if self._processed_frame is not None else None
+            if frame is not None and draw_heatmap:
+                acc_map = self._get_accumulator_matrix(window)
+                if acc_map is not None:
+                    norm = np.clip((acc_map / self.max_saturation_sec) * 255.0, 0, 255).astype(np.uint8)
+                    heatmap_overlay = cv2.applyColorMap(norm, cv2.COLORMAP_JET)
+                    frame_alpha = max(0.0, min(1.0, 1.0 - alpha))
+                    overlay_alpha = max(0.0, min(1.0, alpha))
+                    frame = cv2.addWeighted(frame, frame_alpha, heatmap_overlay, overlay_alpha, 0)
             return frame, self._occupant_count, list(self._active_zones)
 
-    def generate_mjpeg_stream(self):
+    def get_zone_heatmap_stats(
+        self,
+        spatial_zones: list[dict] | None = None,
+        window: str = "5m",
+        density_threshold: float = 0.1,
+    ) -> dict[str, float]:
+        """Calculate spatial utilization rate (% of zone area with active heat) for each spatial zone."""
+        with self._lock:
+            acc_map = self._get_accumulator_matrix(window)
+            if acc_map is None:
+                return {}
+
+            h, w = acc_map.shape[:2]
+            stats = {}
+            if not spatial_zones:
+                active_pixels = np.sum(acc_map > density_threshold)
+                stats["overall"] = round(float((active_pixels / (h * w)) * 100.0), 2)
+                return stats
+
+            for zone in spatial_zones:
+                z_name = zone.get("name", "Zone")
+                points = zone.get("points", [])
+                if len(points) >= 3:
+                    pts = np.array(points, dtype=np.int32)
+                    mask = np.zeros((h, w), dtype=np.uint8)
+                    cv2.fillPoly(mask, [pts], 255)
+                    zone_area = np.sum(mask > 0)
+                    if zone_area > 0:
+                        active_in_zone = np.sum((acc_map > density_threshold) & (mask > 0))
+                        stats[z_name] = round(float((active_in_zone / zone_area) * 100.0), 2)
+                    else:
+                        stats[z_name] = 0.0
+                else:
+                    stats[z_name] = 0.0
+
+            active_pixels = np.sum(acc_map > density_threshold)
+            stats["overall"] = round(float((active_pixels / (h * w)) * 100.0), 2)
+            return stats
+
+    def reset_heatmap_accumulator(self, window: str = "all") -> None:
+        with self._lock:
+            if self._acc_instant is not None:
+                if window in ("instant", "all"):
+                    self._acc_instant.fill(0)
+                if window in ("5m", "all") and self._acc_5m is not None:
+                    self._acc_5m.fill(0)
+                if window in ("session", "all") and self._acc_session is not None:
+                    self._acc_session.fill(0)
+
+    def generate_mjpeg_stream(
+        self,
+        draw_heatmap: bool = False,
+        window: str = "instant",
+        alpha: float = 0.3,
+    ):
         while self.is_running:
-            frame, _, _ = self.get_latest_processed()
+            frame, _, _ = self.get_latest_processed(
+                draw_heatmap=draw_heatmap, window=window, alpha=alpha
+            )
             if frame is None:
                 frame = np.zeros((480, 640, 3), dtype=np.uint8)
                 cv2.putText(
@@ -156,3 +284,4 @@ class VisionPipeline:
                     b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
                 )
             time.sleep(1.0 / self.fps_target)
+
