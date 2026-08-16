@@ -107,6 +107,9 @@ def build_telemetry_payload(pipeline: VisionPipeline | None = None) -> Dict[str,
         _energy_calculator.device_wattages = wattages
         _energy_calculator.electricity_rate_kwh = settings.analytics.electricity_rate_kwh
         _energy_calculator.co2_per_kwh_kg = settings.analytics.co2_per_kwh_kg
+        _energy_calculator.edge_compute_watts = settings.analytics.edge_compute_watts
+        _energy_calculator.schedule_config = settings.analytics.schedule.model_dump()
+        _energy_calculator.tou_config = settings.analytics.tou_tariff.model_dump()
     except Exception as e:
         print(f"Error updating config in telemetry payload: {e}")
 

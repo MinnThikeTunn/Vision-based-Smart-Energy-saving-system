@@ -14,12 +14,37 @@ analytics:
     - 5
     - 6
     start_hour: 0
+  tou_tariff:
+    enabled: false
+    off_peak_rate_kwh: 0.1
+    tiers:
+    - days:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      end_hour: 19
+      name: PEAK
+      rate_kwh: 0.28
+      start_hour: 14
+    - days:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      end_hour: 14
+      name: MID_PEAK
+      rate_kwh: 0.18
+      start_hour: 8
 camera:
   fps: 30
   height: 480
   index: 0
   width: 640
 detector:
+  backend: auto
   confidence_threshold: 0.5
   device: cpu
   model_name: yolov8n.pt
@@ -32,8 +57,16 @@ devices:
     name: Lamp
     power_ramp_sec: 1.5
     rated_wattage: 50.0
+  ss:
+    assigned_zone: 'Zone: ss'
+    category: custom
+    empty_shutdown_timeout_sec: 10
+    enabled: true
+    name: ss
+    power_ramp_sec: 1.5
+    rated_wattage: 50.0
 occupancy:
-  empty_timeout_sec: 10
+  empty_timeout_sec: 300
   persistence_window_sec: 2
 privacy:
   anonymize_faces: false
@@ -50,3 +83,11 @@ spatial_zones:
   - 0.83
   - 0.89
   name: Zone 1
+- assigned_devices:
+  - ss
+  bbox:
+  - 0.0
+  - 0.0
+  - 0.36
+  - 0.76
+  name: 'Zone: ss'

@@ -151,6 +151,7 @@ class YOLOPersonDetector(BaseDetector):
     ):
         if YOLO is None:
             raise RuntimeError("ultralytics package is required for YOLOPersonDetector")
+        self.model_name = model_name
         self.model = YOLO(model_name)
         self.confidence_threshold = confidence_threshold
         self.device = device
@@ -206,3 +207,71 @@ class YOLOPersonDetector(BaseDetector):
         )
 
         return boxes, count, annotated
+
+
+class ONNXPersonDetector(YOLOPersonDetector):
+    """
+    ONNX Runtime-accelerated Person Detector.
+    Inherits inference and tracking logic from YOLOPersonDetector using ONNX weights.
+    """
+    def __init__(
+        self,
+        model_name: str = "yolov8n.onnx",
+        confidence_threshold: float = 0.5,
+        device: str = "cpu",
+    ):
+        super().__init__(model_name=model_name, confidence_threshold=confidence_threshold, device=device)
+
+
+def create_detector(
+    model_name: str = "yolov8n.pt",
+    confidence_threshold: float = 0.5,
+    device: str = "cpu",
+    backend: str = "auto",
+) -> BaseDetector:
+    """
+    Inference Backend Cascade Factory.
+    Attempts hardware-accelerated execution:
+    1. ONNX Runtime (if backend in ('auto', 'onnx') and onnx weights available)
+    2. PyTorch YOLO (if backend in ('auto', 'pytorch') and torch/ultralytics available)
+    3. DummyDetector fallback
+    """
+    import os
+    from pathlib import Path
+
+    backend_lower = backend.lower()
+
+    if backend_lower == "dummy":
+        return DummyDetector()
+
+    # 1. Attempt ONNX Cascade
+    if backend_lower in ("auto", "onnx") and YOLO is not None:
+        onnx_candidate = model_name if model_name.endswith(".onnx") else str(Path(model_name).with_suffix(".onnx"))
+        if Path(onnx_candidate).exists():
+            try:
+                return ONNXPersonDetector(
+                    model_name=onnx_candidate,
+                    confidence_threshold=confidence_threshold,
+                    device=device,
+                )
+            except Exception:
+                if backend_lower == "onnx":
+                    raise
+
+    # 2. Attempt PyTorch YOLO
+    if backend_lower in ("auto", "pytorch") and YOLO is not None:
+        pt_candidate = model_name if model_name.endswith(".pt") else str(Path(model_name).with_suffix(".pt"))
+        if Path(pt_candidate).exists():
+            try:
+                return YOLOPersonDetector(
+                    model_name=pt_candidate,
+                    confidence_threshold=confidence_threshold,
+                    device=device,
+                )
+            except Exception:
+                if backend_lower == "pytorch":
+                    raise
+
+    # 3. Safe fallback to DummyDetector
+    return DummyDetector()
+

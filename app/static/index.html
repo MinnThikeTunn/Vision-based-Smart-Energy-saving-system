@@ -1140,7 +1140,7 @@
               $0.0000
             </div>
             <div class="text-[10px] text-zinc-500 mt-1">
-              Tariff Rate: $0.15 / kWh
+              Tariff Rate: <span id="stat-tariff-rate" class="text-zinc-400 font-mono">$0.15 / kWh</span>
             </div>
           </div>
           <div class="gradient-border analytics-tile p-5 rounded-2xl transition-all-300 hover-scale">
@@ -2087,22 +2087,63 @@
 
           const w = endX - startX;
           const h = endY - startY;
+          const left = Math.min(startX, endX);
+          const top = Math.min(startY, endY);
+          const absW = Math.abs(w);
+          const absH = Math.abs(h);
 
-          ctx.fillStyle = "rgba(16, 185, 129, 0.25)";
+          // 1. Crosshair guidelines across canvas
+          ctx.strokeStyle = "rgba(16, 185, 129, 0.2)";
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(0, endY);
+          ctx.lineTo(canvas.width, endY);
+          ctx.moveTo(endX, 0);
+          ctx.lineTo(endX, canvas.height);
+          ctx.stroke();
+
+          // 2. Selection area bounding box
+          ctx.fillStyle = "rgba(16, 185, 129, 0.22)";
           ctx.strokeStyle = "#10b981";
-          ctx.lineWidth = 2.5;
-          ctx.setLineDash([6, 6]);
-          ctx.fillRect(startX, startY, w, h);
-          ctx.strokeRect(startX, startY, w, h);
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 5]);
+          ctx.fillRect(left, top, absW, absH);
+          ctx.strokeRect(left, top, absW, absH);
 
-          // Render live pixel dimension badge overlay
+          // 3. Corner anchor handles (Don Norman signifiers)
+          ctx.setLineDash([]);
           ctx.fillStyle = "#10b981";
+          const handleSize = 6;
+          const corners = [
+            [left - handleSize / 2, top - handleSize / 2],
+            [left + absW - handleSize / 2, top - handleSize / 2],
+            [left - handleSize / 2, top + absH - handleSize / 2],
+            [left + absW - handleSize / 2, top + absH - handleSize / 2],
+          ];
+          for (const [cx, cy] of corners) {
+            ctx.fillRect(cx, cy, handleSize, handleSize);
+          }
+
+          // 4. Dimension & normalized coordinate badge overlay
+          const normX1 = (left / canvas.width).toFixed(2);
+          const normY1 = (top / canvas.height).toFixed(2);
+          const normX2 = ((left + absW) / canvas.width).toFixed(2);
+          const normY2 = ((top + absH) / canvas.height).toFixed(2);
+          const text = `${Math.round(absW)}×${Math.round(absH)}px [${normX1},${normY1} → ${normX2},${normY2}]`;
+
           ctx.font = "bold 11px Inter, sans-serif";
-          ctx.fillText(
-            `${Math.abs(Math.round(w))}px × ${Math.abs(Math.round(h))}px`,
-            Math.min(startX, endX) + 6,
-            Math.max(16, Math.min(startY, endY) - 6),
-          );
+          const textWidth = ctx.measureText(text).width;
+          const badgeX = left + 4;
+          const badgeY = Math.max(20, top - 6);
+
+          ctx.fillStyle = "rgba(9, 9, 11, 0.85)";
+          ctx.fillRect(badgeX - 4, badgeY - 14, textWidth + 8, 18);
+          ctx.strokeStyle = "rgba(16, 185, 129, 0.6)";
+          ctx.strokeRect(badgeX - 4, badgeY - 14, textWidth + 8, 18);
+
+          ctx.fillStyle = "#34d399";
+          ctx.fillText(text, badgeX, badgeY);
 
           renderFrameRequested = false;
         }

@@ -30,5 +30,9 @@
 * **Zone Spatial Utilization Rate**: Percentage of a spatial zone's grid area exceeding baseline occupancy density thresholds.
 * **Headless Spatial Heatmap Grid**: Synthetic dark grid background used in Headless Privacy Mode to visualize heatmap density without rendering raw camera video frames.
 * **Hourly Heatmap Snapshot**: Periodically persisted PNG rendering of spatial density saved to storage for facility auditing and energy report export.
+* **Inference Backend Cascade**: Dynamic runtime resolver that attempts hardware-accelerated runtimes (ONNX Runtime FP16) before falling back to PyTorch and DummyDetector.
+* **Dynamic Time-of-Use (TOU) Tariff**: Structured multi-tier electricity pricing schedule assigning differentiated rates ($/kWh) across Peak, Mid-Peak, and Off-Peak hourly windows.
+* **Camera Resilience Watchdog**: Non-blocking auto-reconnection loop monitoring video ingestion health and applying exponential backoff upon sensor disconnects without halting ASGI execution.
+* **Pre-Allocated Zero-Copy Buffer Pool**: Static NumPy array containers reserved in volatile RAM across capture and frame transformation loops to eliminate dynamic garbage collector churn at 30 FPS.
 
 

@@ -19,6 +19,7 @@ class EnergyCalculator:
         co2_per_kwh_kg: float = 0.42,
         edge_compute_watts: float = 30.0,
         schedule_config: Dict[str, Any] | None = None,
+        tou_config: Dict[str, Any] | None = None,
     ) -> None:
         self.device_wattages: Dict[str, float] = device_wattages or {
             "light": 40.0,
@@ -34,10 +35,19 @@ class EnergyCalculator:
             "start_hour": 0,
             "end_hour": 24,
         }
+        self.tou_config: Dict[str, Any] = tou_config or {
+            "enabled": False,
+            "off_peak_rate_kwh": 0.10,
+            "tiers": [
+                {"name": "PEAK", "rate_kwh": 0.28, "start_hour": 14, "end_hour": 19, "days": [0, 1, 2, 3, 4]},
+                {"name": "MID_PEAK", "rate_kwh": 0.18, "start_hour": 8, "end_hour": 14, "days": [0, 1, 2, 3, 4]},
+            ],
+        }
 
         self._last_update_time: float = time.time()
         self.cumulative_kwh_baseline: float = 0.0
         self.cumulative_kwh_actual: float = 0.0
+        self.cumulative_saved_cost: float = 0.0
 
     def _is_within_schedule(self, dt: datetime.datetime) -> bool:
         """Check if datetime falls within configured business operating schedule."""
@@ -54,6 +64,29 @@ class EnergyCalculator:
         end_hour = self.schedule_config.get("end_hour", 19)
         return start_hour <= hour <= end_hour
 
+    def get_current_tariff(self, dt: datetime.datetime) -> tuple[float, str]:
+        """
+        Determine active electricity rate and tariff tier for given datetime.
+        Returns: (rate_kwh, tier_name)
+        """
+        if not self.tou_config or not self.tou_config.get("enabled", False):
+            return self.electricity_rate_kwh, "FLAT"
+
+        day_of_week = dt.weekday()
+        hour = dt.hour
+
+        tiers = self.tou_config.get("tiers", [])
+        for tier in tiers:
+            tier_dict = tier if isinstance(tier, dict) else tier.model_dump() if hasattr(tier, "model_dump") else tier.__dict__
+            days = tier_dict.get("days", [0, 1, 2, 3, 4])
+            start_h = tier_dict.get("start_hour", 0)
+            end_h = tier_dict.get("end_hour", 24)
+            if day_of_week in days and start_h <= hour < end_h:
+                return float(tier_dict.get("rate_kwh", self.electricity_rate_kwh)), str(tier_dict.get("name", "TIER"))
+
+        off_peak_rate = float(self.tou_config.get("off_peak_rate_kwh", 0.10))
+        return off_peak_rate, "OFF_PEAK"
+
     def update(
         self,
         device_states: Dict[str, str],
@@ -69,7 +102,7 @@ class EnergyCalculator:
         self._last_update_time = now_ts
 
         is_active_schedule = self._is_within_schedule(current_dt)
-
+        current_rate, current_tier = self.get_current_tariff(current_dt)
 
         raw_baseline = sum(self.device_wattages.values()) if self.device_wattages else 1305.0
         baseline_power_watts = raw_baseline if raw_baseline > 0 else 1305.0
@@ -86,17 +119,18 @@ class EnergyCalculator:
             actual_power_watts += rated_w * power_pct
 
         # Baseline energy accumulates strictly when operating schedule is active
-        if is_active_schedule:
-            self.cumulative_kwh_baseline += (baseline_power_watts / 1000.0) * elapsed_hours
+        delta_baseline_kwh = (baseline_power_watts / 1000.0) * elapsed_hours if is_active_schedule else 0.0
+        self.cumulative_kwh_baseline += delta_baseline_kwh
 
         total_actual_watts = actual_power_watts + self.edge_compute_watts
-        self.cumulative_kwh_actual += (total_actual_watts / 1000.0) * elapsed_hours
+        delta_actual_kwh = (total_actual_watts / 1000.0) * elapsed_hours
+        self.cumulative_kwh_actual += delta_actual_kwh
 
         active_baseline_watts = baseline_power_watts if is_active_schedule else baseline_power_watts
 
         # Net saved kWh formula (subtracting edge compute overhead)
         saved_kwh = max(0.0, self.cumulative_kwh_baseline - self.cumulative_kwh_actual)
-        saved_cost = saved_kwh * self.electricity_rate_kwh
+        saved_cost = saved_kwh * current_rate
         saved_co2_kg = saved_kwh * self.co2_per_kwh_kg
 
         efficiency_pct = (
@@ -118,6 +152,9 @@ class EnergyCalculator:
             "saved_co2_kg": round(saved_co2_kg, 4),
             "energy_efficiency_pct": round(efficiency_pct, 1),
             "schedule_active": is_active_schedule,
+            "tariff_tier": current_tier,
+            "tariff_rate_kwh": current_rate,
         }
+
 
 

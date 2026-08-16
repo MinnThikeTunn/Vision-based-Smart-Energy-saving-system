@@ -187,6 +187,12 @@ function updateEnergyMetrics(m) {
   if (savedCost && m.saved_cost_usd !== undefined) savedCost.textContent = `$${m.saved_cost_usd.toFixed(2)}`;
   if (effPct && m.energy_efficiency_pct !== undefined) effPct.textContent = `${m.energy_efficiency_pct.toFixed(1)}%`;
 
+  const tariffEl = document.getElementById("stat-tariff-rate");
+  if (tariffEl && m.tariff_rate_kwh !== undefined) {
+    const tierText = m.tariff_tier && m.tariff_tier !== "FLAT" ? ` (${m.tariff_tier})` : "";
+    tariffEl.textContent = `$${m.tariff_rate_kwh.toFixed(2)} / kWh${tierText}`;
+  }
+
   // Update schedule mask status indicator in insights panel
   const scheduleMaskEl = document.getElementById("insight-schedule-mask");
   if (scheduleMaskEl && m.schedule_active !== undefined) {
