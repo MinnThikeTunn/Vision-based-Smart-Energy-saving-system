@@ -85,8 +85,81 @@ def test_zone_heatmap_stats_and_reset():
 
 def test_export_heatmap_endpoint():
     """Verify export_heatmap endpoint generates valid PNG image response."""
+    import cv2
     from app.api.video_router import export_heatmap
+
     response = export_heatmap(window="5m")
     assert response.status_code == 200
     assert response.media_type == "image/png"
     assert len(response.body) > 100
+
+    # Verify PNG bytes can be decoded into a valid image matrix
+    img_array = np.frombuffer(response.body, dtype=np.uint8)
+    decoded = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+    assert decoded is not None
+    assert decoded.shape[0] > 480  # Includes header + visual + footer
+    assert decoded.shape[1] >= 640
+
+
+def test_render_heatmap_export_image_with_zones():
+    """Verify heatmap_exporter correctly embeds zone names, assigned devices, and metrics."""
+    import cv2
+    from app.detector.heatmap_exporter import render_heatmap_export_image
+
+    acc_map = np.zeros((480, 640), dtype=np.float32)
+    acc_map[100:200, 100:200] = 50.0  # Add artificial heat
+
+    zones = [
+        {
+            "name": "Zone: Conference Table",
+            "bbox": [0.1, 0.1, 0.5, 0.5],
+            "assigned_devices": ["light", "ac"],
+        },
+        {
+            "name": "Zone: Breakout Area",
+            "bbox": [0.6, 0.5, 0.95, 0.95],
+            "assigned_devices": ["fan"],
+        },
+    ]
+    stats = {"Zone: Conference Table": 62.5, "Zone: Breakout Area": 0.0, "overall": 15.0}
+
+    img = render_heatmap_export_image(
+        acc_map=acc_map,
+        spatial_zones=zones,
+        window="5m",
+        max_saturation_sec=300.0,
+        headless_mode=True,
+        zone_stats=stats,
+        timestamp_str="2026-08-17 03:00:00",
+    )
+
+    assert img is not None
+    assert img.ndim == 3
+    assert img.shape[0] > 480
+    assert img.shape[1] >= 720
+
+    # Ensure encoding to PNG works
+    ret, png_bytes = cv2.imencode(".png", img)
+    assert ret is True
+    assert len(png_bytes) > 500
+
+
+def test_zone_heatmap_stats_with_bbox_and_models():
+    """Verify get_zone_heatmap_stats works seamlessly with bbox configurations."""
+    from app.config.schema import SpatialZoneConfig
+
+    pipeline = VisionPipeline(capture_func=dummy_capture, fps_target=30)
+    boxes = [{"bbox": [100, 100, 200, 300]}]  # Center footprint at (150, 300)
+    pipeline._splat_footprints((480, 640, 3), boxes)
+
+    # Test with SpatialZoneConfig model
+    pydantic_zone = SpatialZoneConfig(
+        name="Meeting Desk",
+        bbox=[0.1, 0.1, 0.5, 0.8],  # Covers footprint (150/640=0.23, 300/480=0.625)
+        assigned_devices=["light_1"],
+    )
+
+    stats = pipeline.get_zone_heatmap_stats(spatial_zones=[pydantic_zone], window="instant")
+    assert "Meeting Desk" in stats
+    assert stats["Meeting Desk"] > 0.0
+

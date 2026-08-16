@@ -5,6 +5,7 @@ import { DeviceListComponent } from './components/device-list.js';
 let wsClient;
 let deviceListComponent;
 let powerChart;
+let weeklyTrendChart;
 let isHeatmapActive = false;
 let isDrawing = false;
 let startX, startY, endX, endY;
@@ -298,20 +299,173 @@ function downloadCSVReport() {
   window.location.href = "/api/analytics/export/csv";
 }
 
-async function toggleWeeklyModal() {
+async function toggleWeeklyModal(show = true) {
+  const modal = document.getElementById("weekly-trend-modal");
+  if (!modal) return;
+
+  if (!show) {
+    modal.classList.add("hidden");
+    return;
+  }
+
+  modal.classList.remove("hidden");
+
   try {
     const res = await fetch("/api/analytics/weekly");
     if (!res.ok) return;
     const data = await res.json();
     const trend = data.weekly_trend || [];
-    let summaryText = "7-Day Energy Analytics Trend:\n\n";
-    for (const day of trend) {
-      summaryText += `${day.date}: Saved ${day.total_kwh_saved.toFixed(2)} kWh ($${day.total_cost_saved_usd.toFixed(2)}) | Efficiency: ${day.savings_percentage.toFixed(1)}%\n`;
-    }
-    alert(summaryText);
+
+    // Calculate aggregate totals and averages across the 7-day window
+    const totSaved = trend.reduce((sum, d) => sum + (d.total_kwh_saved || 0), 0);
+    const totCost = trend.reduce((sum, d) => sum + (d.total_cost_saved_usd || 0), 0);
+    const avgEff = trend.length ? (trend.reduce((sum, d) => sum + (d.savings_percentage || 0), 0) / trend.length) : 0;
+
+    const savedKwhEl = document.getElementById("weekly-modal-saved-kwh");
+    const savedCostEl = document.getElementById("weekly-modal-saved-cost");
+    const effEl = document.getElementById("weekly-modal-efficiency");
+
+    if (savedKwhEl) savedKwhEl.textContent = `${totSaved.toFixed(2)} kWh`;
+    if (savedCostEl) savedCostEl.textContent = `$${totCost.toFixed(2)}`;
+    if (effEl) effEl.textContent = `${avgEff.toFixed(1)}%`;
+
+    renderWeeklyTrendChart(trend);
   } catch (err) {
     console.error("Error fetching weekly trend:", err);
   }
+}
+
+function renderWeeklyTrendChart(trend) {
+  const ctx = document.getElementById('weeklyTrendChart');
+  if (!ctx) return;
+
+  const labels = trend.map(d => {
+    const parts = (d.date || "").split("-");
+    if (parts.length === 3) {
+      const dt = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      return dt.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
+    }
+    return d.date || "";
+  });
+
+  const actuals = trend.map(d => Number((d.total_kwh_actual || 0).toFixed(4)));
+  const baselines = trend.map(d => Number((d.total_kwh_baseline || 0).toFixed(4)));
+  const saved = trend.map(d => Number((d.total_kwh_saved || 0).toFixed(4)));
+
+  const maxVal = Math.max(...actuals, ...baselines, ...saved, 0.005);
+
+  if (weeklyTrendChart) {
+    weeklyTrendChart.data.labels = labels;
+    weeklyTrendChart.data.datasets[0].data = actuals;
+    weeklyTrendChart.data.datasets[1].data = baselines;
+    weeklyTrendChart.data.datasets[2].data = saved;
+    weeklyTrendChart.options.scales.y.suggestedMax = maxVal > 0 ? maxVal * 1.15 : 0.01;
+    weeklyTrendChart.update();
+    return;
+  }
+
+  weeklyTrendChart = new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Actual kWh',
+          data: actuals,
+          borderColor: 'rgba(52, 211, 153, 1)',
+          backgroundColor: 'rgba(52, 211, 153, 0.15)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2.5,
+          pointBackgroundColor: '#34d399',
+          pointBorderColor: '#064e3b',
+          pointBorderWidth: 1.5,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+        {
+          label: 'Baseline kWh',
+          data: baselines,
+          borderColor: 'rgba(56, 189, 248, 1)',
+          backgroundColor: 'rgba(56, 189, 248, 0.08)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2,
+          borderDash: [5, 5],
+          pointBackgroundColor: '#38bdf8',
+          pointBorderColor: '#0c4a6e',
+          pointBorderWidth: 1.5,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+        {
+          label: 'Net Saved kWh',
+          data: saved,
+          borderColor: 'rgba(251, 191, 36, 1)',
+          backgroundColor: 'rgba(251, 191, 36, 0.08)',
+          fill: false,
+          tension: 0.35,
+          borderWidth: 2,
+          pointBackgroundColor: '#fbbf24',
+          pointBorderColor: '#78350f',
+          pointBorderWidth: 1.5,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      animation: { duration: 500 },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255, 255, 255, 0.04)' },
+          ticks: { color: '#94a3b8', font: { size: 11, weight: '500' } }
+        },
+        y: {
+          beginAtZero: true,
+          suggestedMax: maxVal > 0 ? maxVal * 1.15 : 0.01,
+          grid: { color: 'rgba(255, 255, 255, 0.06)' },
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 10 },
+            callback: function(val) {
+              if (val < 0.01 && val > 0) return val.toFixed(4);
+              return val.toFixed(3);
+            }
+          },
+          title: { display: true, text: 'Energy (kWh)', color: '#74b996', font: { size: 11, weight: '600' } }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            color: '#e2e8f0',
+            font: { size: 11, weight: '500' },
+            usePointStyle: true,
+            pointStyle: 'circle',
+            padding: 16
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.92)',
+          titleColor: '#f8fafc',
+          bodyColor: '#e2e8f0',
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+          borderWidth: 1,
+          padding: 10,
+          boxPadding: 4,
+          usePointStyle: true,
+        }
+      }
+    }
+  });
 }
 
 function updateForecast(forecast) {
@@ -420,5 +574,11 @@ function bindGlobalEvents() {
   window.toggleDevice = toggleDevice;
   window.downloadCSVReport = downloadCSVReport;
   window.toggleWeeklyModal = toggleWeeklyModal;
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      toggleWeeklyModal(false);
+    }
+  });
 }
 

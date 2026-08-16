@@ -207,7 +207,7 @@ class VisionPipeline:
 
     def get_zone_heatmap_stats(
         self,
-        spatial_zones: list[dict] | None = None,
+        spatial_zones: list | None = None,
         window: str = "5m",
         density_threshold: float = 0.1,
     ) -> dict[str, float]:
@@ -224,16 +224,33 @@ class VisionPipeline:
                 stats["overall"] = round(float((active_pixels / (h * w)) * 100.0), 2)
                 return stats
 
-            for zone in spatial_zones:
-                z_name = zone.get("name", "Zone")
-                points = zone.get("points", [])
-                if len(points) >= 3:
+            for idx, zone in enumerate(spatial_zones):
+                z_name = getattr(zone, "name", None) or (zone.get("name") if isinstance(zone, dict) else f"Zone {idx+1}")
+                points = getattr(zone, "points", None) or (zone.get("points") if isinstance(zone, dict) else None)
+                bbox = getattr(zone, "bbox", None) or (zone.get("bbox") if isinstance(zone, dict) else None)
+
+                if points and len(points) >= 3:
                     pts = np.array(points, dtype=np.int32)
                     mask = np.zeros((h, w), dtype=np.uint8)
                     cv2.fillPoly(mask, [pts], 255)
                     zone_area = np.sum(mask > 0)
                     if zone_area > 0:
                         active_in_zone = np.sum((acc_map > density_threshold) & (mask > 0))
+                        stats[z_name] = round(float((active_in_zone / zone_area) * 100.0), 2)
+                    else:
+                        stats[z_name] = 0.0
+                elif bbox and len(bbox) >= 4:
+                    if max(bbox) <= 1.0:
+                        x1, y1 = int(bbox[0] * w), int(bbox[1] * h)
+                        x2, y2 = int(bbox[2] * w), int(bbox[3] * h)
+                    else:
+                        x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+                    x1, y1 = max(0, min(w, x1)), max(0, min(h, y1))
+                    x2, y2 = max(0, min(w, x2)), max(0, min(h, y2))
+                    if x2 > x1 and y2 > y1:
+                        zone_acc = acc_map[y1:y2, x1:x2]
+                        zone_area = (y2 - y1) * (x2 - x1)
+                        active_in_zone = np.sum(zone_acc > density_threshold)
                         stats[z_name] = round(float((active_in_zone / zone_area) * 100.0), 2)
                     else:
                         stats[z_name] = 0.0

@@ -133,31 +133,42 @@ def heatmap_stats(window: str = "5m"):
 
 
 @router.get("/heatmap/export")
-def export_heatmap(window: str = "5m"):
+def export_heatmap(window: str = "5m", include_zones: bool = True):
     from pathlib import Path
     from datetime import datetime
+    from app.config.loader import load_settings
+    from app.detector.heatmap_exporter import render_heatmap_export_image
 
+    settings = load_settings()
     pipeline = get_vision_pipeline()
     acc_map = pipeline._get_accumulator_matrix(window)
+    zones = settings.spatial_zones if include_zones else []
+    stats = pipeline.get_zone_heatmap_stats(spatial_zones=zones, window=window)
+    bg_frame, _, _ = pipeline.get_latest_processed(draw_heatmap=False)
 
-    h, w = (480, 640)
-    if acc_map is not None and acc_map.size > 0:
-        h, w = acc_map.shape[:2]
-        norm = np.clip((acc_map / pipeline.max_saturation_sec) * 255.0, 0, 255).astype(np.uint8)
-    else:
-        norm = np.zeros((h, w), dtype=np.uint8)
+    now = datetime.now()
+    timestamp_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    timestamp_file = now.strftime("%Y%m%d_%H%M%S")
 
-    heatmap_overlay = cv2.applyColorMap(norm, cv2.COLORMAP_JET)
+    exported_image = render_heatmap_export_image(
+        acc_map=acc_map,
+        spatial_zones=zones,
+        window=window,
+        max_saturation_sec=pipeline.max_saturation_sec,
+        bg_frame=bg_frame,
+        headless_mode=settings.privacy.headless_mode,
+        zone_stats=stats,
+        timestamp_str=timestamp_str,
+    )
 
-    # Save hourly snapshot to storage/heatmaps/
+    # Save snapshot to storage/heatmaps/
     storage_dir = Path("storage/heatmaps")
     storage_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"heatmap_{timestamp}_{window}.png"
+    filename = f"heatmap_{timestamp_file}_{window}.png"
     filepath = storage_dir / filename
-    cv2.imwrite(str(filepath), heatmap_overlay)
+    cv2.imwrite(str(filepath), exported_image)
 
-    ret, png_bytes = cv2.imencode(".png", heatmap_overlay)
+    ret, png_bytes = cv2.imencode(".png", exported_image)
     if not ret:
         return Response(content=b"", media_type="image/png")
 
