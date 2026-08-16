@@ -13,6 +13,7 @@ class DetectorConfig(BaseModel):
     model_name: str = Field(default="yolov8n.pt", description="YOLO model variant")
     confidence_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
     device: str = Field(default="cpu", description="Inference device (cpu, cuda)")
+    backend: str = Field(default="auto", description="Inference runtime backend: auto, onnx, pytorch, dummy")
 
 
 class PrivacyConfig(BaseModel):
@@ -54,11 +55,31 @@ class OperatingScheduleConfig(BaseModel):
     end_hour: int = Field(default=19, ge=0, le=23, description="Day end hour 0..23")
 
 
+class TOUTierConfig(BaseModel):
+    name: str = Field(default="PEAK", description="Tier name: PEAK, MID_PEAK, OFF_PEAK")
+    rate_kwh: float = Field(default=0.28, ge=0.0, description="Cost per kWh for this tier")
+    start_hour: int = Field(default=14, ge=0, le=23)
+    end_hour: int = Field(default=19, ge=0, le=23)
+    days: List[int] = Field(default_factory=lambda: [0, 1, 2, 3, 4])
+
+
+class TOUTariffConfig(BaseModel):
+    enabled: bool = Field(default=False, description="Enable dynamic Time-of-Use tariff pricing")
+    off_peak_rate_kwh: float = Field(default=0.10, ge=0.0, description="Default off-peak rate")
+    tiers: List[TOUTierConfig] = Field(
+        default_factory=lambda: [
+            TOUTierConfig(name="PEAK", rate_kwh=0.28, start_hour=14, end_hour=19, days=[0, 1, 2, 3, 4]),
+            TOUTierConfig(name="MID_PEAK", rate_kwh=0.18, start_hour=8, end_hour=14, days=[0, 1, 2, 3, 4]),
+        ]
+    )
+
+
 class AnalyticsConfig(BaseModel):
     electricity_rate_kwh: float = Field(default=0.15, ge=0.0, description="Cost per kWh in USD")
     co2_per_kwh_kg: float = Field(default=0.42, ge=0.0, description="CO2 emission factor kg/kWh")
     edge_compute_watts: float = Field(default=30.0, ge=0.0, description="Continuous power draw of edge server in Watts")
     schedule: OperatingScheduleConfig = Field(default_factory=OperatingScheduleConfig)
+    tou_tariff: TOUTariffConfig = Field(default_factory=TOUTariffConfig)
 
 
 class SystemConfiguration(BaseModel):

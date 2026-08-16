@@ -6,7 +6,7 @@ from app.telemetry.metrics import get_metrics_registry
 
 
 def test_energy_calculator():
-    calc = EnergyCalculator(device_wattages={"light": 40.0, "fan": 65.0, "ac": 1200.0})
+    calc = EnergyCalculator(device_wattages={"light": 40.0, "fan": 65.0, "ac": 1200.0}, edge_compute_watts=0.0)
     metrics = calc.update(device_states={"light": "OFF", "fan": "OFF", "ac": "OFF"})
     assert "saved_kwh" in metrics
     assert "saved_cost_usd" in metrics

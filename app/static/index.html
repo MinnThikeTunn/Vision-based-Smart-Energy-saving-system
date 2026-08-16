@@ -628,7 +628,13 @@
       #video-container:-webkit-full-screen #video-stream,
       #video-container:-moz-full-screen #video-stream,
       #video-container.video-fullscreen-mode #video-stream {
-        width: 100%; height: 100%; object-fit: contain;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        object-fit: fill !important;
+        margin: 0 !important;
+        padding: 0 !important;
       }
       #video-container.video-fullscreen-mode {
         position: fixed !important; top: 0 !important; left: 0 !important; z-index: 9999 !important;
@@ -859,7 +865,7 @@
                   id="video-stream"
                   src="/api/video_feed"
                   alt="Camera Stream"
-                  class="w-full h-full object-cover"
+                  class="w-full h-full object-fill"
                 />
                 <!-- Interactive Drawing Overlay Canvas -->
                 <canvas id="zone-canvas" class="canvas-overlay hidden"></canvas>
@@ -1134,7 +1140,7 @@
               $0.0000
             </div>
             <div class="text-[10px] text-zinc-500 mt-1">
-              Tariff Rate: $0.15 / kWh
+              Tariff Rate: <span id="stat-tariff-rate" class="text-zinc-400 font-mono">$0.15 / kWh</span>
             </div>
           </div>
           <div class="gradient-border analytics-tile p-5 rounded-2xl transition-all-300 hover-scale">
@@ -1484,6 +1490,101 @@
       id="drawing-focus-backdrop"
       class="fixed inset-0 bg-black/85 backdrop-blur-md z-40 hidden transition-all duration-300"
     ></div>
+
+    <!-- ================= MODAL: 7-DAY TREND ANALYTICS & LINE CHART ================= -->
+    <div
+      id="weekly-trend-modal"
+      class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 sm:p-6 transition-all duration-300"
+      onclick="if (event.target === this) toggleWeeklyModal(false)"
+    >
+      <div
+        class="bg-zinc-900/95 border border-zinc-800 rounded-[32px] max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl backdrop-blur-xl relative"
+      >
+        <!-- Header -->
+        <div class="flex justify-between items-center border-b border-zinc-800/80 pb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+              <i class="fa-solid fa-chart-line text-lg"></i>
+            </div>
+            <div>
+              <h3 class="text-base sm:text-lg font-black-heading text-zinc-100 flex items-center gap-2">
+                7-Day Energy & Savings Trend
+              </h3>
+              <p class="text-xs text-zinc-400 mt-0.5">
+                Rolling 7-day performance: Actual vs. Baseline consumption & net savings
+              </p>
+            </div>
+          </div>
+          <button
+            onclick="toggleWeeklyModal(false)"
+            class="w-8 h-8 rounded-full bg-zinc-800/60 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+            title="Close modal"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- 7-Day KPI Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="p-4 bg-zinc-950/60 rounded-2xl border border-zinc-800/80 space-y-1">
+            <div class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-leaf text-emerald-400"></i> Total Energy Saved
+            </div>
+            <div id="weekly-modal-saved-kwh" class="text-xl font-black text-emerald-400">
+              0.00 kWh
+            </div>
+            <div class="text-[10px] text-zinc-500">Over last 7 days</div>
+          </div>
+
+          <div class="p-4 bg-zinc-950/60 rounded-2xl border border-zinc-800/80 space-y-1">
+            <div class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-dollar-sign text-emerald-400"></i> Total Cost Saved
+            </div>
+            <div id="weekly-modal-saved-cost" class="text-xl font-black text-emerald-400">
+              $0.00
+            </div>
+            <div class="text-[10px] text-zinc-500">Estimated financial ROI</div>
+          </div>
+
+          <div class="p-4 bg-zinc-950/60 rounded-2xl border border-zinc-800/80 space-y-1">
+            <div class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i class="fa-solid fa-percent text-sky-400"></i> Average Efficiency
+            </div>
+            <div id="weekly-modal-efficiency" class="text-xl font-black text-sky-400">
+              0.0%
+            </div>
+            <div class="text-[10px] text-zinc-500">Average weekly reduction</div>
+          </div>
+        </div>
+
+        <!-- Line Chart Container -->
+        <div class="p-5 bg-zinc-950/60 rounded-2xl border border-zinc-800/80 space-y-2">
+          <div class="flex justify-between items-center text-xs text-zinc-400 pb-1">
+            <span class="font-semibold text-zinc-300 flex items-center gap-2">
+              <i class="fa-solid fa-wave-square text-sky-400"></i> Daily Consumption & Savings Profile
+            </span>
+            <span class="text-[11px] text-zinc-500">Units: kWh</span>
+          </div>
+          <div class="h-64 sm:h-72 w-full relative">
+            <canvas id="weeklyTrendChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Footer Info & Actions -->
+        <div class="flex justify-between items-center text-xs text-zinc-500 pt-1">
+          <span class="flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-info text-zinc-400"></i>
+            Updated automatically from 5-minute rolling energy snapshots.
+          </span>
+          <button
+            onclick="toggleWeeklyModal(false)"
+            class="px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition cursor-pointer"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- ================= MODAL: CREATE CUSTOM DEVICE & POWER RAMP ================= -->
     <div
@@ -1986,22 +2087,63 @@
 
           const w = endX - startX;
           const h = endY - startY;
+          const left = Math.min(startX, endX);
+          const top = Math.min(startY, endY);
+          const absW = Math.abs(w);
+          const absH = Math.abs(h);
 
-          ctx.fillStyle = "rgba(16, 185, 129, 0.25)";
+          // 1. Crosshair guidelines across canvas
+          ctx.strokeStyle = "rgba(16, 185, 129, 0.2)";
+          ctx.lineWidth = 1;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(0, endY);
+          ctx.lineTo(canvas.width, endY);
+          ctx.moveTo(endX, 0);
+          ctx.lineTo(endX, canvas.height);
+          ctx.stroke();
+
+          // 2. Selection area bounding box
+          ctx.fillStyle = "rgba(16, 185, 129, 0.22)";
           ctx.strokeStyle = "#10b981";
-          ctx.lineWidth = 2.5;
-          ctx.setLineDash([6, 6]);
-          ctx.fillRect(startX, startY, w, h);
-          ctx.strokeRect(startX, startY, w, h);
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 5]);
+          ctx.fillRect(left, top, absW, absH);
+          ctx.strokeRect(left, top, absW, absH);
 
-          // Render live pixel dimension badge overlay
+          // 3. Corner anchor handles (Don Norman signifiers)
+          ctx.setLineDash([]);
           ctx.fillStyle = "#10b981";
+          const handleSize = 6;
+          const corners = [
+            [left - handleSize / 2, top - handleSize / 2],
+            [left + absW - handleSize / 2, top - handleSize / 2],
+            [left - handleSize / 2, top + absH - handleSize / 2],
+            [left + absW - handleSize / 2, top + absH - handleSize / 2],
+          ];
+          for (const [cx, cy] of corners) {
+            ctx.fillRect(cx, cy, handleSize, handleSize);
+          }
+
+          // 4. Dimension & normalized coordinate badge overlay
+          const normX1 = (left / canvas.width).toFixed(2);
+          const normY1 = (top / canvas.height).toFixed(2);
+          const normX2 = ((left + absW) / canvas.width).toFixed(2);
+          const normY2 = ((top + absH) / canvas.height).toFixed(2);
+          const text = `${Math.round(absW)}×${Math.round(absH)}px [${normX1},${normY1} → ${normX2},${normY2}]`;
+
           ctx.font = "bold 11px Inter, sans-serif";
-          ctx.fillText(
-            `${Math.abs(Math.round(w))}px × ${Math.abs(Math.round(h))}px`,
-            Math.min(startX, endX) + 6,
-            Math.max(16, Math.min(startY, endY) - 6),
-          );
+          const textWidth = ctx.measureText(text).width;
+          const badgeX = left + 4;
+          const badgeY = Math.max(20, top - 6);
+
+          ctx.fillStyle = "rgba(9, 9, 11, 0.85)";
+          ctx.fillRect(badgeX - 4, badgeY - 14, textWidth + 8, 18);
+          ctx.strokeStyle = "rgba(16, 185, 129, 0.6)";
+          ctx.strokeRect(badgeX - 4, badgeY - 14, textWidth + 8, 18);
+
+          ctx.fillStyle = "#34d399";
+          ctx.fillText(text, badgeX, badgeY);
 
           renderFrameRequested = false;
         }

@@ -46,6 +46,13 @@ class VisionPipeline:
         self._inference_thread: threading.Thread | None = None
         self._cap: cv2.VideoCapture | None = None
 
+        # Pre-Allocated Static Zero-Copy Frame Buffers
+        self._raw_buf: np.ndarray | None = None
+        self._processed_buf: np.ndarray | None = None
+        self._infer_buf: np.ndarray | None = None
+        self._anonymize_buf: np.ndarray | None = None
+        self._out_buf: np.ndarray | None = None
+
     def start(self) -> None:
         if self.is_running:
             return
@@ -69,41 +76,79 @@ class VisionPipeline:
                 self._cap.release()
             self._cap = None
 
+    def _ensure_buffer(self, buf: np.ndarray | None, shape: tuple[int, ...], dtype=np.uint8) -> np.ndarray:
+        """Ensure static pre-allocated buffer matches required shape without dynamic GC churn."""
+        if buf is None or buf.shape != shape or buf.dtype != dtype:
+            return np.zeros(shape, dtype=dtype)
+        return buf
+
     def _capture_loop(self) -> None:
         frame_interval = 1.0 / self.fps_target
+        consecutive_drops = 0
+
         while self.is_running:
             start_time = time.time()
             frame = None
+
             if self.custom_capture_func is not None:
                 frame = self.custom_capture_func()
             elif self._cap is not None and self._cap.isOpened():
-                ret, frame = self._cap.read()
-                if not ret:
+                try:
+                    ret, raw_frame = self._cap.read()
+                    if ret and raw_frame is not None and raw_frame.size > 0:
+                        frame = raw_frame
+                        consecutive_drops = 0
+                    else:
+                        frame = None
+                except Exception:
                     frame = None
 
-            if frame is None:
+            # Camera Resilience Watchdog: handle disconnects with exponential backoff & auto-reconnect
+            if frame is None and self.custom_capture_func is None:
+                consecutive_drops += 1
+                synthetic_frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                msg = f"Camera Reconnecting (Attempt {consecutive_drops})..."
+                cv2.putText(synthetic_frame, msg, (120, 240), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (50, 180, 255), 2)
+                cv2.circle(synthetic_frame, (320, 280), 8, (0, 200, 255), -1)
+
+                with self._lock:
+                    self._raw_buf = self._ensure_buffer(self._raw_buf, synthetic_frame.shape)
+                    np.copyto(self._raw_buf, synthetic_frame)
+                    self._raw_frame = self._raw_buf
+
+                # Exponential backoff auto-reconnect attempt
+                backoff = min(5.0, 0.5 * (1.4 ** min(8, consecutive_drops)))
+                time.sleep(backoff)
+
+                if self._cap is not None:
+                    with contextlib.suppress(Exception):
+                        self._cap.release()
+                    self._cap = None
+
+                backend = cv2.CAP_DSHOW if sys.platform.startswith("win") else cv2.CAP_ANY
+                with contextlib.suppress(Exception):
+                    self._cap = cv2.VideoCapture(self.camera_index, backend)
+                continue
+
+            elif frame is None:
                 frame = np.zeros((480, 640, 3), dtype=np.uint8)
-                cv2.putText(
-                    frame,
-                    "No Camera Feed",
-                    (200, 240),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.8,
-                    (255, 255, 255),
-                    2,
-                )
+                cv2.putText(frame, "No Camera Feed", (200, 240), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
 
             with self._lock:
-                self._raw_frame = frame
+                self._raw_buf = self._ensure_buffer(self._raw_buf, frame.shape)
+                np.copyto(self._raw_buf, frame)
+                self._raw_frame = self._raw_buf
 
             elapsed = time.time() - start_time
             sleep_time = max(0.001, frame_interval - elapsed)
             time.sleep(sleep_time)
 
     def _apply_anonymization(self, frame: np.ndarray, boxes: list) -> np.ndarray:
-        """Apply Gaussian blur over detected person regions for privacy canvas anonymization."""
-        anonymized = frame.copy()
-        h, w = anonymized.shape[:2]
+        """Apply Gaussian blur over detected person regions for privacy canvas anonymization using static buffer."""
+        h, w = frame.shape[:2]
+        self._anonymize_buf = self._ensure_buffer(self._anonymize_buf, frame.shape)
+        np.copyto(self._anonymize_buf, frame)
+
         for box in boxes:
             b = box.get("bbox") if isinstance(box, dict) else box
             if b and len(b) >= 4:
@@ -111,10 +156,10 @@ class VisionPipeline:
                 x1, y1 = max(0, x1), max(0, y1)
                 x2, y2 = min(w, x2), min(h, y2)
                 if x2 > x1 and y2 > y1:
-                    roi = anonymized[y1:y2, x1:x2]
+                    roi = self._anonymize_buf[y1:y2, x1:x2]
                     ksize = (max(31, (x2 - x1) // 2 | 1), max(31, (y2 - y1) // 2 | 1))
-                    anonymized[y1:y2, x1:x2] = cv2.GaussianBlur(roi, ksize, 30)
-        return anonymized
+                    self._anonymize_buf[y1:y2, x1:x2] = cv2.GaussianBlur(roi, ksize, 30)
+        return self._anonymize_buf
 
     def _splat_footprints(self, frame_shape: tuple[int, int], boxes: list) -> None:
         """Splat Gaussian density at person footprint centers (x_c, y_max) into multi-channel accumulators."""
@@ -154,7 +199,9 @@ class VisionPipeline:
             frame_to_process = None
             with self._lock:
                 if self._raw_frame is not None:
-                    frame_to_process = self._raw_frame.copy()
+                    self._infer_buf = self._ensure_buffer(self._infer_buf, self._raw_frame.shape)
+                    np.copyto(self._infer_buf, self._raw_frame)
+                    frame_to_process = self._infer_buf
 
             if frame_to_process is not None:
                 spatial_zones = []
@@ -173,7 +220,9 @@ class VisionPipeline:
 
                 with self._lock:
                     self._splat_footprints(frame_to_process.shape, boxes)
-                    self._processed_frame = annotated
+                    self._processed_buf = self._ensure_buffer(self._processed_buf, annotated.shape)
+                    np.copyto(self._processed_buf, annotated)
+                    self._processed_frame = self._processed_buf
                     self._occupant_count = count
                     self._boxes = boxes
                     self._active_zones = active_zones
@@ -194,7 +243,12 @@ class VisionPipeline:
         alpha: float = 0.3,
     ) -> tuple[np.ndarray | None, int, list[str]]:
         with self._lock:
-            frame = self._processed_frame.copy() if self._processed_frame is not None else None
+            frame = None
+            if self._processed_frame is not None:
+                self._out_buf = self._ensure_buffer(self._out_buf, self._processed_frame.shape)
+                np.copyto(self._out_buf, self._processed_frame)
+                frame = self._out_buf
+
             if frame is not None and draw_heatmap:
                 acc_map = self._get_accumulator_matrix(window)
                 if acc_map is not None:
@@ -207,7 +261,7 @@ class VisionPipeline:
 
     def get_zone_heatmap_stats(
         self,
-        spatial_zones: list[dict] | None = None,
+        spatial_zones: list | None = None,
         window: str = "5m",
         density_threshold: float = 0.1,
     ) -> dict[str, float]:
@@ -224,16 +278,33 @@ class VisionPipeline:
                 stats["overall"] = round(float((active_pixels / (h * w)) * 100.0), 2)
                 return stats
 
-            for zone in spatial_zones:
-                z_name = zone.get("name", "Zone")
-                points = zone.get("points", [])
-                if len(points) >= 3:
+            for idx, zone in enumerate(spatial_zones):
+                z_name = getattr(zone, "name", None) or (zone.get("name") if isinstance(zone, dict) else f"Zone {idx+1}")
+                points = getattr(zone, "points", None) or (zone.get("points") if isinstance(zone, dict) else None)
+                bbox = getattr(zone, "bbox", None) or (zone.get("bbox") if isinstance(zone, dict) else None)
+
+                if points and len(points) >= 3:
                     pts = np.array(points, dtype=np.int32)
                     mask = np.zeros((h, w), dtype=np.uint8)
                     cv2.fillPoly(mask, [pts], 255)
                     zone_area = np.sum(mask > 0)
                     if zone_area > 0:
                         active_in_zone = np.sum((acc_map > density_threshold) & (mask > 0))
+                        stats[z_name] = round(float((active_in_zone / zone_area) * 100.0), 2)
+                    else:
+                        stats[z_name] = 0.0
+                elif bbox and len(bbox) >= 4:
+                    if max(bbox) <= 1.0:
+                        x1, y1 = int(bbox[0] * w), int(bbox[1] * h)
+                        x2, y2 = int(bbox[2] * w), int(bbox[3] * h)
+                    else:
+                        x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+                    x1, y1 = max(0, min(w, x1)), max(0, min(h, y1))
+                    x2, y2 = max(0, min(w, x2)), max(0, min(h, y2))
+                    if x2 > x1 and y2 > y1:
+                        zone_acc = acc_map[y1:y2, x1:x2]
+                        zone_area = (y2 - y1) * (x2 - x1)
+                        active_in_zone = np.sum(zone_acc > density_threshold)
                         stats[z_name] = round(float((active_in_zone / zone_area) * 100.0), 2)
                     else:
                         stats[z_name] = 0.0
