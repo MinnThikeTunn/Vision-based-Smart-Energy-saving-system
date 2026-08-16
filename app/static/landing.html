@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vision Smart Energy — See occupancy. Save energy.</title>
+    <meta
+      name="description"
+      content="Vision Smart Energy uses real-time AI occupancy detection to automate lights, fans, and HVAC — cutting wasted power in empty rooms."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #03150f;
+        --mint: #7dffb2;
+        --lime: #d4ff8a;
+        --aqua: #6af0e8;
+        --sky: #7ec8f0;
+        --amber: #f0b45a;
+        --cream: #eef8f1;
+        --mute: #9fd9bd;
+        --line: rgba(125, 255, 178, 0.18);
+        --font-display: "Bricolage Grotesque", sans-serif;
+        --font-body: "Figtree", sans-serif;
+        --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { scroll-behavior: smooth; }
+      body {
+        font-family: var(--font-body);
+        color: var(--cream);
+        background: var(--ink);
+        overflow-x: hidden;
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(2%, -3%) scale(1.05); }
+      }
+      @keyframes shimmer {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 100% 50%; }
+      }
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(22px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes scan {
+        0% { transform: translateY(-20%); opacity: 0; }
+        25% { opacity: 0.4; }
+        100% { transform: translateY(140%); opacity: 0; }
+      }
+
+      .orb {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(60px);
+        pointer-events: none;
+        z-index: 0;
+        animation: float 18s ease-in-out infinite;
+      }
+      .orb.a { width: 420px; height: 420px; top: -120px; left: -80px; background: rgba(125, 255, 178, 0.28); }
+      .orb.b { width: 360px; height: 360px; top: 30%; right: -120px; background: rgba(106, 240, 232, 0.16); animation-delay: -6s; }
+      .orb.c { width: 300px; height: 300px; bottom: 0; left: 35%; background: rgba(240, 180, 90, 0.12); animation-delay: -11s; }
+
+      .page { position: relative; z-index: 1; }
+
+      .topbar {
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.15rem 1.5rem;
+        max-width: 1120px;
+        margin: 0 auto;
+        animation: rise 0.7s var(--ease) both;
+      }
+      .topbar-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        text-decoration: none;
+        color: var(--cream);
+        flex-shrink: 0;
+      }
+      .mark {
+        width: 2.4rem;
+        height: 2.4rem;
+        border-radius: 0.85rem;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(145deg, #b6ffd0, #1f8a58);
+        border: 2px solid var(--lime);
+        color: #03150f;
+      }
+      .mark-name {
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: 1.05rem;
+        letter-spacing: -0.03em;
+      }
+      .top-links {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.35rem 0.85rem;
+      }
+      .top-links a {
+        color: var(--mute);
+        text-decoration: none;
+        font-size: 0.82rem;
+        font-weight: 600;
+        transition: color 0.2s ease;
+      }
+      .top-links a:hover { color: var(--lime); }
+      .top-links a.ghost {
+        padding: 0.5rem 0.85rem;
+        border-radius: 0.7rem;
+        border: 1px solid rgba(125, 255, 178, 0.25);
+      }
+      .top-links a.ghost:hover {
+        border-color: rgba(212, 255, 138, 0.55);
+        transform: translateY(-1px);
+      }
+
+      .hero {
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        position: relative;
+        padding: 6.5rem 1.5rem 4rem;
+        overflow: hidden;
+      }
+      .hero-visual {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background:
+          radial-gradient(ellipse 70% 55% at 70% 45%, rgba(36, 130, 90, 0.45), transparent 60%),
+          radial-gradient(ellipse 50% 40% at 15% 80%, rgba(106, 240, 232, 0.12), transparent 55%),
+          linear-gradient(160deg, #0c4633 0%, #03150f 48%, #072a20 100%);
+      }
+      .hero-visual svg {
+        position: absolute;
+        right: -5%;
+        top: 50%;
+        transform: translateY(-50%);
+        width: min(68vw, 720px);
+        height: auto;
+        opacity: 0.9;
+      }
+      .hero-visual .scanline {
+        position: absolute;
+        left: 35%;
+        right: 0;
+        height: 35%;
+        background: linear-gradient(180deg, transparent, rgba(125, 255, 178, 0.1), transparent);
+        animation: scan 6s ease-in-out infinite;
+        pointer-events: none;
+      }
+      .hero-content {
+        position: relative;
+        z-index: 2;
+        max-width: 1120px;
+        width: 100%;
+        padding-right: min(42vw, 420px);
+        animation: rise 0.85s var(--ease) 0.1s both;
+      }
+      @media (max-width: 860px) {
+        .hero-content { padding-right: 0; text-align: center; }
+        .hero-visual svg { opacity: 0.28; right: 50%; transform: translate(50%, -40%); width: 120%; }
+        .cta-row { justify-content: center; }
+        .top-links a:not(.ghost) { display: none; }
+      }
+
+      .brand-hero {
+        font-family: var(--font-display);
+        font-size: clamp(2.6rem, 7vw, 4.6rem);
+        font-weight: 800;
+        line-height: 0.98;
+        letter-spacing: -0.045em;
+        margin-bottom: 1.1rem;
+        background: linear-gradient(100deg, #fff 0%, #7dffb2 32%, #d4ff8a 58%, #6af0e8 100%);
+        background-size: 200% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: shimmer 8s ease-in-out infinite alternate;
+      }
+      .hero-line {
+        font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+        color: var(--mute);
+        max-width: 36ch;
+        line-height: 1.55;
+        margin-bottom: 1.75rem;
+        font-weight: 500;
+      }
+      @media (max-width: 860px) {
+        .hero-line { margin-left: auto; margin-right: auto; }
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+      }
+      .btn-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.9rem 1.35rem;
+        border-radius: 0.85rem;
+        background: linear-gradient(135deg, #7dffb2, #3f9a6e);
+        color: #03150f;
+        font-weight: 800;
+        font-size: 0.95rem;
+        text-decoration: none;
+        border: none;
+        box-shadow: 0 12px 30px rgba(125, 255, 178, 0.28);
+        transition: transform 0.25s var(--ease), box-shadow 0.25s ease, filter 0.25s ease;
+      }
+      .btn-primary:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 16px 36px rgba(125, 255, 178, 0.4);
+        filter: brightness(1.05);
+      }
+      .btn-secondary {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.9rem 1.2rem;
+        border-radius: 0.85rem;
+        background: transparent;
+        color: var(--cream);
+        font-weight: 700;
+        font-size: 0.95rem;
+        text-decoration: none;
+        border: 1px solid rgba(125, 255, 178, 0.35);
+        transition: transform 0.25s var(--ease), border-color 0.25s ease, background 0.25s ease;
+      }
+      .btn-secondary:hover {
+        transform: translateY(-3px);
+        border-color: rgba(212, 255, 138, 0.65);
+        background: rgba(125, 255, 178, 0.08);
+      }
+
+      section {
+        position: relative;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 5rem 1.5rem;
+        border-top: 1px solid var(--line);
+      }
+      .section-kicker {
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--mint);
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+      }
+      .section-title {
+        font-family: var(--font-display);
+        font-size: clamp(1.8rem, 4vw, 2.55rem);
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        line-height: 1.1;
+        margin-bottom: 0.85rem;
+      }
+      .section-copy {
+        color: var(--mute);
+        font-size: 1.05rem;
+        line-height: 1.65;
+        max-width: 52ch;
+      }
+      .section-copy.wide { max-width: 62ch; }
+
+      .story { display: grid; gap: 2.5rem; }
+      .story-steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.75rem 2rem;
+      }
+      @media (max-width: 760px) {
+        .story-steps { grid-template-columns: 1fr; }
+      }
+      .step-num {
+        font-family: var(--font-display);
+        font-size: 2.3rem;
+        font-weight: 800;
+        background: linear-gradient(180deg, var(--lime), var(--mint));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        line-height: 1;
+        margin-bottom: 0.55rem;
+      }
+      .step h3 {
+        font-family: var(--font-display);
+        font-size: 1.15rem;
+        margin-bottom: 0.45rem;
+        letter-spacing: -0.02em;
+      }
+      .step p, .step ul {
+        color: var(--mute);
+        font-size: 0.95rem;
+        line-height: 1.55;
+      }
+      .step ul {
+        margin-top: 0.65rem;
+        padding-left: 1.1rem;
+      }
+      .step li { margin-bottom: 0.3rem; }
+
+      .problem-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2.5rem;
+        align-items: start;
+      }
+      @media (max-width: 760px) {
+        .problem-grid { grid-template-columns: 1fr; }
+      }
+      .contrast-list {
+        list-style: none;
+        display: grid;
+        gap: 1rem;
+      }
+      .contrast-list li {
+        padding-left: 1rem;
+        border-left: 3px solid var(--amber);
+        color: var(--mute);
+        font-size: 0.98rem;
+        line-height: 1.5;
+      }
+      .contrast-list li strong {
+        display: block;
+        color: var(--cream);
+        font-family: var(--font-display);
+        font-size: 1.05rem;
+        margin-bottom: 0.2rem;
+      }
+      .contrast-list.good li { border-left-color: var(--mint); }
+
+      .feature-list {
+        display: grid;
+        gap: 0;
+        margin-top: 2rem;
+      }
+      .feature-row {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 1.25rem;
+        padding: 1.35rem 0;
+        border-bottom: 1px solid rgba(125, 255, 178, 0.12);
+        align-items: start;
+      }
+      @media (max-width: 640px) {
+        .feature-row { grid-template-columns: 1fr; gap: 0.35rem; }
+      }
+      .feature-row h3 {
+        font-family: var(--font-display);
+        font-size: 1.05rem;
+        color: var(--lime);
+        letter-spacing: -0.02em;
+      }
+      .feature-row p {
+        color: var(--mute);
+        font-size: 0.98rem;
+        line-height: 1.6;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 2.5rem;
+        align-items: start;
+      }
+      @media (max-width: 760px) {
+        .two-col { grid-template-columns: 1fr; }
+      }
+
+      .detail-block {
+        margin-top: 1.5rem;
+      }
+      .detail-block h3 {
+        font-family: var(--font-display);
+        font-size: 1.1rem;
+        margin-bottom: 0.55rem;
+        color: var(--aqua);
+      }
+      .detail-block p, .detail-block li {
+        color: var(--mute);
+        font-size: 0.95rem;
+        line-height: 1.6;
+      }
+      .detail-block ul {
+        padding-left: 1.15rem;
+        display: grid;
+        gap: 0.4rem;
+      }
+
+      .stack-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.25rem 1.5rem;
+        margin-top: 2rem;
+      }
+      @media (max-width: 860px) {
+        .stack-grid { grid-template-columns: 1fr 1fr; }
+      }
+      @media (max-width: 480px) {
+        .stack-grid { grid-template-columns: 1fr; }
+      }
+      .stack-item {
+        padding-top: 0.85rem;
+        border-top: 2px solid rgba(125, 255, 178, 0.35);
+      }
+      .stack-item h3 {
+        font-family: var(--font-display);
+        font-size: 1rem;
+        margin-bottom: 0.35rem;
+      }
+      .stack-item p {
+        color: var(--mute);
+        font-size: 0.88rem;
+        line-height: 1.5;
+      }
+
+      .audience {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.75rem;
+        margin-top: 2rem;
+      }
+      @media (max-width: 760px) {
+        .audience { grid-template-columns: 1fr; }
+      }
+      .audience article h3 {
+        font-family: var(--font-display);
+        font-size: 1.15rem;
+        margin-bottom: 0.45rem;
+        color: var(--lime);
+      }
+      .audience article p {
+        color: var(--mute);
+        font-size: 0.95rem;
+        line-height: 1.55;
+      }
+
+      .dash-preview {
+        margin-top: 1.75rem;
+        display: grid;
+        gap: 0.85rem;
+      }
+      .dash-preview li {
+        list-style: none;
+        display: grid;
+        grid-template-columns: 8.5rem 1fr;
+        gap: 1rem;
+        padding: 0.85rem 0;
+        border-bottom: 1px solid rgba(125, 255, 178, 0.12);
+        font-size: 0.95rem;
+      }
+      @media (max-width: 640px) {
+        .dash-preview li { grid-template-columns: 1fr; gap: 0.25rem; }
+      }
+      .dash-preview strong {
+        color: var(--mint);
+        font-family: var(--font-display);
+        font-weight: 700;
+      }
+      .dash-preview span { color: var(--mute); line-height: 1.5; }
+
+      .close {
+        text-align: center;
+        padding-bottom: 4rem;
+      }
+      .close .section-copy {
+        margin: 0 auto 1.75rem;
+      }
+      .close .cta-row { justify-content: center; }
+
+      footer {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 1.75rem 1.5rem 2.25rem;
+        display: grid;
+        gap: 1rem;
+        color: var(--mute);
+        font-size: 0.8rem;
+        border-top: 1px solid var(--line);
+      }
+      .footer-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.25rem;
+        justify-content: space-between;
+        align-items: center;
+      }
+      footer a {
+        color: var(--mint);
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+      }
+
+      /* Back to top — circular up arrow */
+      .back-to-top {
+        position: fixed;
+        right: 1.25rem;
+        bottom: 1.25rem;
+        z-index: 50;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        text-decoration: none;
+        color: #03150f;
+        background: linear-gradient(145deg, #7dffb2, #3f9a6e);
+        border: 2px solid rgba(212, 255, 138, 0.65);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), 0 0 20px rgba(125, 255, 178, 0.25);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(10px) scale(0.92);
+        transition:
+          opacity 0.28s ease,
+          visibility 0.28s ease,
+          transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+          filter 0.25s ease,
+          box-shadow 0.25s ease;
+      }
+      .back-to-top.is-visible {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0) scale(1);
+      }
+      .back-to-top:hover {
+        filter: brightness(1.08);
+        transform: translateY(-3px) scale(1.06);
+        box-shadow: 0 14px 32px rgba(0, 0, 0, 0.4), 0 0 28px rgba(125, 255, 178, 0.35);
+      }
+      .back-to-top:active {
+        transform: translateY(0) scale(0.96);
+      }
+      .back-to-top svg {
+        width: 1.15rem;
+        height: 1.15rem;
+        display: block;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation: none !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="orb a" aria-hidden="true"></div>
+    <div class="orb b" aria-hidden="true"></div>
+    <div class="orb c" aria-hidden="true"></div>
+
+    <div class="page" id="top">
+      <div class="topbar">
+        <a class="topbar-brand" href="/">
+          <span class="mark" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M12 2.5C8.6 7.2 4.5 9.8 4.5 14.6c0 4.2 3.2 7.2 7.5 7.9 4.3-.7 7.5-3.7 7.5-7.9 0-4.8-4.1-7.4-7.5-12.1Z"
+              />
+              <path
+                d="M12 6.2v13.2"
+                stroke="#03150f"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                opacity="0.35"
+              />
+              <path
+                d="M12 10.5c1.6 1.1 2.7 2.6 3.2 4.3"
+                stroke="#03150f"
+                stroke-width="1.3"
+                stroke-linecap="round"
+                opacity="0.28"
+              />
+            </svg>
+          </span>
+          <span class="mark-name">Vision Smart Energy</span>
+        </a>
+        <nav class="top-links" aria-label="Landing sections">
+          <a href="#problem">Problem</a>
+          <a href="#how">How it works</a>
+          <a href="#capabilities">Capabilities</a>
+          <a href="#privacy">Privacy</a>
+          <a href="#stack">Stack</a>
+          <a class="ghost" href="/dashboard">Open dashboard</a>
+        </nav>
+      </div>
+
+      <header class="hero">
+        <div class="hero-visual" aria-hidden="true">
+          <div class="scanline"></div>
+          <svg viewBox="0 0 720 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#7dffb2" stop-opacity="0.9"/>
+                <stop offset="55%" stop-color="#6af0e8" stop-opacity="0.55"/>
+                <stop offset="100%" stop-color="#7ec8f0" stop-opacity="0.25"/>
+              </linearGradient>
+              <linearGradient id="g2" x1="0.2" y1="0" x2="0.8" y2="1">
+                <stop offset="0%" stop-color="#d4ff8a" stop-opacity="0.85"/>
+                <stop offset="100%" stop-color="#2d8a5e" stop-opacity="0.2"/>
+              </linearGradient>
+              <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2"/>
+              </filter>
+            </defs>
+            <rect x="110" y="90" width="480" height="360" rx="28" stroke="url(#g1)" stroke-width="3" fill="rgba(8,40,28,0.35)"/>
+            <circle cx="350" cy="270" r="78" stroke="url(#g2)" stroke-width="4" fill="rgba(125,255,178,0.06)"/>
+            <circle cx="350" cy="270" r="42" stroke="#7dffb2" stroke-width="3" fill="rgba(125,255,178,0.12)"/>
+            <circle cx="350" cy="270" r="14" fill="#d4ff8a"/>
+            <circle cx="350" cy="270" r="95" stroke="#7dffb2" stroke-opacity="0.25" stroke-width="1" stroke-dasharray="6 10"/>
+            <rect x="160" y="150" width="110" height="150" rx="10" stroke="#a78bfa" stroke-width="2" fill="rgba(167,139,250,0.08)"/>
+            <rect x="430" y="180" width="120" height="160" rx="10" stroke="#6af0e8" stroke-width="2" fill="rgba(106,240,232,0.08)"/>
+            <path d="M180 500 C260 430, 440 430, 540 500" stroke="url(#g1)" stroke-width="3" fill="none" filter="url(#soft)"/>
+            <path d="M210 530 C290 470, 420 470, 510 530" stroke="#d4ff8a" stroke-opacity="0.45" stroke-width="2" fill="none"/>
+            <path d="M560 130 C590 160, 590 210, 555 235 C545 180, 520 150, 560 130Z" fill="url(#g2)" opacity="0.85"/>
+          </svg>
+        </div>
+
+        <div class="hero-content">
+          <h1 class="brand-hero">Vision Smart Energy</h1>
+          <p class="hero-line">
+            Real-time vision detects who’s in the room — then quietly powers down what isn’t needed.
+          </p>
+          <div class="cta-row">
+            <a class="btn-primary" href="/dashboard">Enter Control Center →</a>
+            <a class="btn-secondary" href="#how">See how it works</a>
+          </div>
+        </div>
+      </header>
+
+      <section id="problem">
+        <div class="problem-grid">
+          <div>
+            <p class="section-kicker">The problem</p>
+            <h2 class="section-title">Empty rooms still burn power</h2>
+            <p class="section-copy wide">
+              Lights, fans, and air-conditioning often stay on long after people leave.
+              Manual switches get forgotten. Timers are blunt. Motion sensors misfire.
+              Vision Smart Energy closes that gap with camera-based occupancy intelligence.
+            </p>
+          </div>
+          <div>
+            <ul class="contrast-list">
+              <li>
+                <strong>Before</strong>
+                Always-on baselines, wasted kWh, no clear proof of savings.
+              </li>
+              <li>
+                <strong>Guesswork controls</strong>
+                Fixed schedules ignore real room usage and zone context.
+              </li>
+            </ul>
+            <ul class="contrast-list good" style="margin-top: 1.25rem">
+              <li>
+                <strong>After</strong>
+                Live person detection, zone-aware decisions, measurable ROI on the dashboard.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="story" id="how">
+        <div>
+          <p class="section-kicker">How it works</p>
+          <h2 class="section-title">From camera to kilowatts saved</h2>
+          <p class="section-copy">
+            A continuous loop runs while the system is live: sense the room, decide device states, then prove the savings.
+          </p>
+        </div>
+        <div class="story-steps">
+          <div class="step">
+            <div class="step-num">01</div>
+            <h3>Detect</h3>
+            <p>YOLOv8 reads the webcam (or demo feed) and counts people in real time.</p>
+            <ul>
+              <li>Centroid tracking keeps IDs stable across brief dropouts</li>
+              <li>Optional heatmap shows where people dwell</li>
+              <li>Frames are processed live — not archived as a video library</li>
+            </ul>
+          </div>
+          <div class="step">
+            <div class="step-num">02</div>
+            <h3>Decide</h3>
+            <p>Spatial zones and occupancy state machines choose what should stay powered.</p>
+            <ul>
+              <li>Draw zones on the live feed (desk vs transit, etc.)</li>
+              <li>Persistence windows absorb camera flicker</li>
+              <li>Per-device shutdown timeouts avoid harsh instant cutoffs</li>
+            </ul>
+          </div>
+          <div class="step">
+            <div class="step-num">03</div>
+            <h3>Save</h3>
+            <p>Virtual (or hardware-ready) devices ramp power while analytics track impact.</p>
+            <ul>
+              <li>Async power ramps simulate realistic on/off curves</li>
+              <li>Live kWh, cost, and CO₂ prevented vs always-on baseline</li>
+              <li>Audit logs explain every automation decision</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="capabilities">
+        <p class="section-kicker">Capabilities</p>
+        <h2 class="section-title">What’s inside the control center</h2>
+        <p class="section-copy">
+          Everything below is already implemented in the live dashboard — this home page only introduces it.
+        </p>
+        <div class="feature-list">
+          <div class="feature-row">
+            <h3>Live vision stage</h3>
+            <p>Fullscreen-capable video feed with occupancy overlays, heatmap toggle, and interactive zone drawing for device-to-space mapping.</p>
+          </div>
+          <div class="feature-row">
+            <h3>Virtual devices</h3>
+            <p>Add lights, fans, AC, or custom loads with wattage, auto-off timeout, and ramp timing. Toggle them manually or let occupancy logic drive them.</p>
+          </div>
+          <div class="feature-row">
+            <h3>Energy analytics</h3>
+            <p>Hourly consumption vs baseline charts, cumulative savings, efficiency gain, CSV export, and 7-day trend views for facilities reporting.</p>
+          </div>
+          <div class="feature-row">
+            <h3>Rules &amp; settings</h3>
+            <p>Tune persistence windows, empty-room timeouts, confidence thresholds, headless mode, and anonymization without touching core code.</p>
+          </div>
+          <div class="feature-row">
+            <h3>Observability</h3>
+            <p>WebSocket telemetry keeps the UI live. Prometheus metrics and audit logs support demos, debugging, and operations review.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="privacy">
+        <div class="two-col">
+          <div>
+            <p class="section-kicker">Privacy first</p>
+            <h2 class="section-title">Intelligence without a surveillance archive</h2>
+            <p class="section-copy wide">
+              Energy automation shouldn’t require storing people’s faces.
+              The system is designed around ephemeral vision — process what you need, keep what you must, discard the rest.
+            </p>
+          </div>
+          <div>
+            <div class="detail-block">
+              <h3>Built-in safeguards</h3>
+              <ul>
+                <li><strong style="color:#eef8f1">Zero frame retention</strong> — no long-term video library by design</li>
+                <li><strong style="color:#eef8f1">Headless automation</strong> — run decisions without exposing the live feed UI</li>
+                <li><strong style="color:#eef8f1">Canvas anonymization</strong> — optional blurring of people on the stream</li>
+                <li><strong style="color:#eef8f1">Local-first demo path</strong> — works on your machine for classroom / lab demos</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="dashboard-tour">
+        <p class="section-kicker">Inside the product</p>
+        <h2 class="section-title">A guided tour of the dashboard</h2>
+        <p class="section-copy">
+          When you click Enter Control Center, you’ll land in the same app your team engineered — with the upgraded UI shell.
+        </p>
+        <ul class="dash-preview">
+          <li>
+            <strong>Live Control</strong>
+            <span>Video stage, occupant stats, room status, countdowns, and device power ramps.</span>
+          </li>
+          <li>
+            <strong>Heatmap tools</strong>
+            <span>Switch memory windows, opacity, clear buffers, and export PNG snapshots.</span>
+          </li>
+          <li>
+            <strong>Settings Hub</strong>
+            <span>Power draw, savings, efficiency, hourly chart, config form, and forecasting panel.</span>
+          </li>
+          <li>
+            <strong>Audit Logs</strong>
+            <span>Slide-over event trail for toggles, state changes, and automation decisions.</span>
+          </li>
+        </ul>
+      </section>
+
+      <section id="audience">
+        <p class="section-kicker">Who it’s for</p>
+        <h2 class="section-title">Built for real shared spaces</h2>
+        <p class="section-copy">Useful anywhere lights and climate stay on after people leave.</p>
+        <div class="audience">
+          <article>
+            <h3>Classrooms &amp; labs</h3>
+            <p>Demo AI occupancy control with a webcam, then show measurable savings against an always-on baseline.</p>
+          </article>
+          <article>
+            <h3>Offices &amp; meeting rooms</h3>
+            <p>Map desk vs transit zones so only the right fixtures stay powered when someone is actually there.</p>
+          </article>
+          <article>
+            <h3>Facilities teams</h3>
+            <p>Export reports, watch Prometheus metrics, and review audit logs when proving ROI to stakeholders.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="stack">
+        <p class="section-kicker">Technology</p>
+        <h2 class="section-title">Modern stack, clear separation of concerns</h2>
+        <p class="section-copy">
+          The backend and vision pipeline are your teammates’ engineering.
+          This home page and visual system are the presentation layer on top.
+        </p>
+        <div class="stack-grid">
+          <div class="stack-item">
+            <h3>YOLOv8</h3>
+            <p>Real-time person detection on live or demo video feeds.</p>
+          </div>
+          <div class="stack-item">
+            <h3>FastAPI</h3>
+            <p>REST + WebSocket backend for control, config, and telemetry.</p>
+          </div>
+          <div class="stack-item">
+            <h3>OpenCV</h3>
+            <p>Frame capture, overlays, heatmap rendering, and stream delivery.</p>
+          </div>
+          <div class="stack-item">
+            <h3>Prometheus</h3>
+            <p>Production-style metrics for occupancy, power, and inference health.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="close" id="launch">
+        <p class="section-kicker">Ready when you are</p>
+        <h2 class="section-title">Open the live control center</h2>
+        <p class="section-copy">
+          Explore the full system — live vision, devices, analytics, settings, and audit logs — with the new energy UI.
+        </p>
+        <div class="cta-row">
+          <a class="btn-primary" href="/dashboard">Launch dashboard →</a>
+          <a class="btn-secondary" href="#how">Review the flow again</a>
+        </div>
+      </section>
+
+      <footer>
+        <div class="footer-row">
+          <span>Vision Smart Energy · vision-based occupancy detection &amp; automated energy saving</span>
+          <a href="/dashboard">Go to dashboard</a>
+        </div>
+        <div class="footer-row">
+          <div class="footer-links">
+            <a href="#problem">Problem</a>
+            <a href="#how">How it works</a>
+            <a href="#capabilities">Capabilities</a>
+            <a href="#privacy">Privacy</a>
+            <a href="#stack">Stack</a>
+          </div>
+          <span>UI/landing presentation layer · core features unchanged</span>
+        </div>
+      </footer>
+    </div>
+
+    <a
+      href="#top"
+      id="back-to-top"
+      class="back-to-top"
+      aria-label="Back to top of home page"
+      title="Back to top"
+    >
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M6 14.5L12 8.5L18 14.5"
+          stroke="currentColor"
+          stroke-width="2.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </a>
+
+    <script>
+      (function () {
+        const btn = document.getElementById("back-to-top");
+        if (!btn) return;
+
+        const toggle = () => {
+          if (window.scrollY > 380) btn.classList.add("is-visible");
+          else btn.classList.remove("is-visible");
+        };
+
+        window.addEventListener("scroll", toggle, { passive: true });
+        toggle();
+
+        btn.addEventListener("click", function (e) {
+          e.preventDefault();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+      })();
+    </script>
+  </body>
+</html>

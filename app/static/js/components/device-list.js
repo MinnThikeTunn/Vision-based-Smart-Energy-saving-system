@@ -46,33 +46,33 @@ export class DeviceListComponent {
   createDeviceNode(id, state, displayStatus, pwrPct, isRamping, timeout, isOn) {
     const card = document.createElement("div");
     card.id = `device-card-${id}`;
-    card.className = "glass-panel p-4 rounded-[24px] border border-zinc-800/80 flex flex-col gap-3 glass-panel-hover transition-all-300 shadow-lg";
+    card.className = "glass-panel device-card p-4 rounded-xl border border-zinc-800/70 flex flex-col gap-3 glass-panel-hover transition-all-300";
 
     const labelName = id.replace(/_/g, " ").toUpperCase();
     const actionLabel = isOn ? "Turn Off" : "Turn On";
 
     card.innerHTML = `
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3.5">
-          <div class="device-icon-box p-3 ${isOn ? 'bg-emerald-500/20 text-emerald-300' : 'bg-zinc-800/40 text-zinc-600'} rounded-2xl transition-all-300">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3.5 min-w-0">
+          <div class="device-icon-box p-3 ${isOn ? 'bg-emerald-500/25 text-emerald-200' : 'bg-zinc-800/50 text-zinc-500'} rounded-xl transition-all-300">
             <i class="fa-solid ${id.includes('ac') || id.includes('hvac') ? 'fa-snowflake' : (id.includes('fan') ? 'fa-fan' : (id.includes('light') || id.includes('lamp') ? 'fa-lightbulb' : 'fa-plug'))} text-lg"></i>
           </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <h4 class="text-sm font-black-heading text-zinc-100 tracking-wide">${labelName}</h4>
-              <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-zinc-900 text-zinc-400 border border-zinc-800">${timeout}s Auto-Off</span>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h4 class="text-sm font-black-heading text-zinc-100 tracking-wide truncate">${labelName}</h4>
+              <span class="text-[10px] px-2 py-0.5 rounded-md font-mono bg-zinc-950/80 text-zinc-400 border border-zinc-700/80">${timeout}s Auto-Off</span>
             </div>
-            <p class="device-state-text text-xs ${isRamping ? 'text-amber-400 animate-pulse' : (isOn ? 'text-emerald-400' : 'text-zinc-500')} font-semibold mt-0.5">
+            <p class="device-state-text text-xs ${isRamping ? 'text-amber-400 animate-pulse' : (isOn ? 'text-emerald-300' : 'text-zinc-500')} font-semibold mt-0.5">
               Status: ${displayStatus} (${pwrPct}%)
             </p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <button class="device-toggle-btn px-4 py-2 rounded-xl text-xs font-bold transition-all-300 ${isOn ? 'bg-rose-500/10 text-rose-300 border border-rose-500/30 hover:bg-rose-500/20' : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20'} flex items-center gap-1.5 shadow-sm">
-            <i class="fa-solid ${isOn ? 'fa-power-off text-rose-400' : 'fa-bolt text-emerald-400'}"></i> ${actionLabel}
+        <div class="flex items-center gap-2 shrink-0">
+          <button class="device-toggle-btn px-4 py-2 rounded-lg text-xs font-bold transition-all-300 ${isOn ? 'bg-rose-500/15 text-rose-300 border border-rose-500/35 hover:bg-rose-500/25' : 'bg-emerald-500/15 text-emerald-200 border border-emerald-400/40 hover:bg-emerald-500/25'} flex items-center gap-1.5">
+            <i class="fa-solid ${isOn ? 'fa-power-off text-rose-400' : 'fa-bolt text-emerald-300'}"></i> ${actionLabel}
           </button>
           ${this.onDelete ? `
-            <button class="device-delete-btn p-2 rounded-xl text-zinc-600 hover:text-rose-400 hover:bg-rose-500/10 transition-all-300">
+            <button class="device-delete-btn p-2 rounded-lg text-zinc-600 hover:text-rose-400 hover:bg-rose-500/10 transition-all-300">
               <i class="fa-solid fa-trash text-xs"></i>
             </button>
           ` : ''}
@@ -80,8 +80,8 @@ export class DeviceListComponent {
       </div>
 
       <!-- Power Ramp Telemetry Bar -->
-      <div class="w-full bg-zinc-950/80 rounded-full h-2 border border-zinc-800/80 overflow-hidden relative">
-        <div class="power-ramp-fill bg-gradient-to-r ${isOn ? 'from-emerald-500 to-teal-400' : 'from-zinc-700 to-zinc-600'} h-full rounded-full transition-all-300" style="width: ${pwrPct}%"></div>
+      <div class="w-full bg-zinc-950/80 rounded-full h-2.5 border border-zinc-800/80 overflow-hidden relative">
+        <div class="power-ramp-fill bg-gradient-to-r ${isOn ? 'from-emerald-400 via-lime-300 to-teal-300' : 'from-zinc-700 to-zinc-600'} h-full rounded-full transition-all-300" style="width: ${pwrPct}%"></div>
       </div>
     `;
 

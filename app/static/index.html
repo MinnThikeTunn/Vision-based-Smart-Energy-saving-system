@@ -8,11 +8,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,650;12..96,800&family=Figtree:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <!-- Modular Stylesheet -->
-    <link rel="stylesheet" href="/static/css/main.css" />
+    <!-- Modular Stylesheet (cache-busted) -->
+    <link rel="stylesheet" href="/static/css/main.css?v=wow6" />
     <!-- FontAwesome, Tailwind & Chart.js -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link
@@ -20,75 +20,594 @@
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script type="module" src="/static/js/app.js"></script>
+    <script type="module" src="/static/js/app.js?v=wow6"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
             fontFamily: {
-              sans: ["Inter", "sans-serif"],
-              heading: ["Outfit", "sans-serif"],
+              sans: ["Figtree", "sans-serif"],
+              heading: ["Bricolage Grotesque", "sans-serif"],
             },
             borderRadius: {
-              "3xl": "32px",
+              "3xl": "1.15rem",
+            },
+            colors: {
+              zinc: {
+                50: "#f2fbf6",
+                100: "#e3f6eb",
+                200: "#c5ead4",
+                300: "#9bd4b4",
+                400: "#74b996",
+                500: "#559978",
+                600: "#3b7860",
+                700: "#2a5a48",
+                800: "#1a3f33",
+                900: "#0e2a22",
+                950: "#061912",
+              },
+              emerald: {
+                200: "#c8f5a8",
+                300: "#7de0bb",
+                400: "#4ecf9a",
+                500: "#2d8a5e",
+              },
+              sky: {
+                300: "#9ad4f5",
+                400: "#7ec8f0",
+              },
+              amber: {
+                300: "#f5c97a",
+                400: "#f0b45a",
+              },
+              teal: {
+                300: "#8ee4df",
+                400: "#6ed6d0",
+              },
             },
           },
         },
       };
     </script>
     <style>
-      body {
-        background-color: #0b0b0c;
-        color: #f4f4f5;
-        font-family: "Inter", sans-serif;
+      /* ========== PRESENTATION WOW THEME (UI only, after Tailwind) ========== */
+      :root {
+        --wow-mint: #7dffb2;
+        --wow-lime: #d4ff8a;
+        --wow-aqua: #6af0e8;
+        --wow-sky: #7ec8f0;
+        --wow-amber: #f0b45a;
+        --wow-ink: #03150f;
       }
-      h1,
-      h2,
-      h3,
-      h4,
-      .font-black-heading {
-        font-family: "Outfit", sans-serif;
-        font-weight: 900;
-        letter-spacing: -0.03em;
+
+      @keyframes wow-float {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(2%, -3%) scale(1.06); }
       }
-      .gradient-border {
+      @keyframes wow-rise {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes wow-shimmer {
+        0% { background-position: 0% 50%; }
+        100% { background-position: 100% 50%; }
+      }
+      @keyframes wow-live-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(255, 80, 80, 0.55); }
+        70% { box-shadow: 0 0 0 10px rgba(255, 80, 80, 0); }
+      }
+      @keyframes wow-scan {
+        0% { transform: translateY(-100%); opacity: 0; }
+        20% { opacity: 0.35; }
+        100% { transform: translateY(220%); opacity: 0; }
+      }
+      @keyframes wow-btn-shine {
+        0% { transform: translateX(-120%) skewX(-18deg); }
+        100% { transform: translateX(220%) skewX(-18deg); }
+      }
+
+      /* ===== Hover animations (UI only) ===== */
+      .brand-mark,
+      .nav-tabs > button,
+      .nav-cluster > button,
+      #connection-badge,
+      .glass-panel,
+      .gradient-border,
+      .stat-tile,
+      .device-toggle-btn,
+      .device-delete-btn,
+      .showcase-pills span,
+      button,
+      a {
+        transition:
+          transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+          box-shadow 0.28s ease,
+          border-color 0.28s ease,
+          background-color 0.28s ease,
+          color 0.28s ease,
+          filter 0.28s ease !important;
+      }
+
+      .brand-mark:hover {
+        transform: translateY(-3px) rotate(-6deg) scale(1.06) !important;
+        box-shadow: 0 12px 28px rgba(125, 255, 178, 0.4) !important;
+        filter: brightness(1.08) !important;
+      }
+
+      .nav-tabs > button:hover,
+      .nav-cluster > button:hover {
+        transform: translateY(-2px) scale(1.03) !important;
+        border-color: rgba(212, 255, 138, 0.55) !important;
+        box-shadow: 0 8px 20px rgba(125, 255, 178, 0.18) !important;
+        color: #e8fff2 !important;
+      }
+
+      #connection-badge:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 16px rgba(125, 255, 178, 0.2) !important;
+      }
+
+      .hover-scale,
+      .glass-panel-hover,
+      .stat-tile,
+      .video-stage,
+      #device-list-container > .glass-panel {
+        will-change: transform;
+      }
+
+      .hover-scale:hover,
+      .glass-panel-hover:hover,
+      .stat-tile:hover,
+      #device-list-container > .glass-panel:hover {
+        transform: translateY(-6px) scale(1.015) !important;
+        border-color: rgba(212, 255, 138, 0.65) !important;
+        box-shadow:
+          inset 0 1px 0 rgba(200, 255, 180, 0.18),
+          0 18px 36px rgba(0, 0, 0, 0.28),
+          0 0 0 1px rgba(125, 255, 178, 0.18) !important;
+      }
+
+      .video-stage:hover {
+        transform: translateY(-4px) !important;
+        border-color: rgba(106, 240, 232, 0.5) !important;
+        box-shadow:
+          inset 0 1px 0 rgba(200, 255, 180, 0.14),
+          0 20px 40px rgba(0, 0, 0, 0.3),
+          0 0 24px rgba(106, 240, 232, 0.12) !important;
+      }
+
+      .stat-tile:hover .stat-kicker {
+        color: #d4ff8a !important;
+        transform: translateX(2px);
+      }
+      .stat-tile .stat-kicker {
+        transition: color 0.25s ease, transform 0.25s ease !important;
+      }
+      .stat-tile:hover [id^="stat-"] {
+        transform: scale(1.06);
+        display: inline-block;
+      }
+      .stat-tile [id^="stat-"] {
+        transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
+      }
+
+      /* Buttons: lift + soft shine sweep */
+      button:not(:disabled) {
+        position: relative !important;
+        overflow: hidden !important;
+      }
+      button:not(:disabled)::after {
+        content: "" !important;
+        position: absolute !important;
+        top: 0; left: 0;
+        width: 40% !important;
+        height: 100% !important;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent) !important;
+        transform: translateX(-120%) skewX(-18deg) !important;
+        pointer-events: none !important;
+        opacity: 0 !important;
+      }
+      button:not(:disabled):hover::after {
+        opacity: 1 !important;
+        animation: wow-btn-shine 0.65s ease !important;
+      }
+      button:not(:disabled):hover {
+        transform: translateY(-2px) scale(1.03) !important;
+        filter: brightness(1.08) !important;
+      }
+      button:not(:disabled):active {
+        transform: translateY(0) scale(0.98) !important;
+        filter: brightness(0.98) !important;
+      }
+
+      .device-toggle-btn:hover {
+        box-shadow: 0 8px 18px rgba(125, 255, 178, 0.22) !important;
+      }
+      .device-delete-btn:hover {
+        transform: translateY(-2px) rotate(-8deg) scale(1.08) !important;
+      }
+
+      .showcase-pills span:hover {
+        transform: translateY(-2px) scale(1.05) !important;
+        border-color: rgba(212, 255, 138, 0.55) !important;
+        color: #d4ff8a !important;
+        background: rgba(12, 70, 50, 0.75) !important;
+      }
+
+      /* Settings analytics metric cards hover */
+      .analytics-tile {
+        cursor: default !important;
+        will-change: transform;
+      }
+      .analytics-tile .analytics-label,
+      .analytics-tile .analytics-value {
+        transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), color 0.28s ease !important;
+        display: inline-block;
+      }
+      .analytics-tile:hover {
+        transform: translateY(-7px) scale(1.03) !important;
+        border-color: rgba(212, 255, 138, 0.7) !important;
+        box-shadow:
+          inset 0 1px 0 rgba(200, 255, 180, 0.2),
+          0 20px 40px rgba(0, 0, 0, 0.32),
+          0 0 28px rgba(125, 255, 178, 0.16) !important;
+      }
+      .analytics-tile:hover .analytics-label {
+        color: #d4ff8a !important;
+        transform: translateX(3px);
+      }
+      .analytics-tile:hover .analytics-value {
+        transform: scale(1.08);
+      }
+      .analytics-grid > .analytics-tile:nth-child(1):hover {
+        background: linear-gradient(155deg, rgba(40, 140, 85, 0.95), rgba(8, 42, 28, 0.98)) !important;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 30px rgba(125, 255, 178, 0.22) !important;
+      }
+      .analytics-grid > .analytics-tile:nth-child(2):hover {
+        background: linear-gradient(155deg, rgba(30, 100, 150, 0.92), rgba(8, 30, 42, 0.98)) !important;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 30px rgba(126, 200, 240, 0.22) !important;
+      }
+      .analytics-grid > .analytics-tile:nth-child(3):hover {
+        background: linear-gradient(155deg, rgba(20, 130, 120, 0.92), rgba(8, 38, 36, 0.98)) !important;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 30px rgba(106, 240, 232, 0.22) !important;
+      }
+      .analytics-grid > .analytics-tile:nth-child(4):hover {
+        background: linear-gradient(155deg, rgba(140, 95, 20, 0.92), rgba(36, 24, 8, 0.98)) !important;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 30px rgba(240, 180, 90, 0.22) !important;
+      }
+
+      /* Keep interactive overlays clickable above shine */
+      button > * {
         position: relative;
-        background: linear-gradient(to bottom, #18181b, #09090b);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        z-index: 1;
       }
-      .glass-panel {
-        background: rgba(24, 24, 27, 0.75);
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+
+      body {
+        font-family: "Figtree", sans-serif !important;
+        color: #eef8f1 !important;
+        background-color: var(--wow-ink) !important;
+        background-image:
+          radial-gradient(ellipse 80% 55% at 0% -10%, rgba(90, 230, 160, 0.42), transparent 55%),
+          radial-gradient(ellipse 65% 45% at 100% 0%, rgba(255, 190, 80, 0.22), transparent 52%),
+          radial-gradient(ellipse 55% 40% at 85% 100%, rgba(80, 210, 220, 0.24), transparent 55%),
+          radial-gradient(ellipse 40% 30% at 40% 60%, rgba(125, 255, 178, 0.08), transparent 60%),
+          linear-gradient(155deg, #0c4633 0%, #03150f 42%, #0a3a2c 100%) !important;
+        background-attachment: fixed !important;
+        min-height: 100vh !important;
+        overflow-x: hidden !important;
       }
-      .micro-glow-green {
-        box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+
+      .ambient-orb {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(50px);
+        pointer-events: none;
+        z-index: 0;
+        animation: wow-float 16s ease-in-out infinite;
       }
-      .micro-glow-amber {
-        box-shadow: 0 0 20px rgba(245, 158, 11, 0.1);
+      .ambient-orb.a { width: 340px; height: 340px; top: -80px; left: -60px; background: rgba(125, 255, 178, 0.28); }
+      .ambient-orb.b { width: 280px; height: 280px; top: 20%; right: -80px; background: rgba(106, 240, 232, 0.18); animation-delay: -4s; }
+      .ambient-orb.c { width: 260px; height: 260px; bottom: 5%; left: 30%; background: rgba(240, 180, 90, 0.12); animation-delay: -8s; }
+
+      .app-shell {
+        position: relative !important;
+        z-index: 1 !important;
+        animation: wow-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
       }
-      .transition-all-300 {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      h1, h2, h3, h4, .font-black-heading {
+        font-family: "Bricolage Grotesque", sans-serif !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.035em !important;
       }
-      .hover-scale:hover {
-        transform: translateY(-2px);
-        border-color: rgba(255, 255, 255, 0.1);
+
+      .brand-lockup { display: flex !important; align-items: center !important; gap: 1rem !important; }
+
+      .brand-mark {
+        width: 3rem !important;
+        height: 3rem !important;
+        border-radius: 1.05rem !important;
+        display: grid !important;
+        place-items: center !important;
+        background: linear-gradient(145deg, #b6ffd0, #1f8a58 55%, #0b3d2c) !important;
+        border: 2px solid #d4ff8a !important;
+        color: #03150f !important;
+        box-shadow: 0 8px 24px rgba(125, 255, 178, 0.25) !important;
+        position: relative !important;
       }
-      .drawer-overlay {
-        transition: opacity 0.3s ease-in-out;
+      .brand-mark::after {
+        content: "" !important;
+        position: absolute !important;
+        inset: -5px !important;
+        border-radius: 1.25rem !important;
+        border: 1px solid rgba(125, 255, 178, 0.35) !important;
+        pointer-events: none !important;
       }
-      .drawer-content {
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      .brand-title {
+        font-size: clamp(1.6rem, 2.8vw, 2.15rem) !important;
+        font-weight: 800 !important;
+        line-height: 1.05 !important;
+        background: linear-gradient(100deg, #fff 0%, #7dffb2 30%, #d4ff8a 55%, #6af0e8 78%, #7ec8f0 100%) !important;
+        background-size: 200% 100% !important;
+        -webkit-background-clip: text !important;
+        background-clip: text !important;
+        color: transparent !important;
+        -webkit-text-fill-color: transparent !important;
+        animation: wow-shimmer 7s ease-in-out infinite alternate !important;
       }
+
+      .brand-subtitle {
+        color: #9fd9bd !important;
+        letter-spacing: 0.1em !important;
+        text-transform: uppercase !important;
+        font-size: 0.66rem !important;
+        margin-top: 0.3rem !important;
+      }
+
+      .app-header {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 1rem 1.5rem !important;
+        padding: 1rem 1.15rem 1.2rem !important;
+        margin-bottom: 0.5rem !important;
+        border-radius: 1.25rem !important;
+        background: linear-gradient(135deg, rgba(12, 70, 50, 0.72), rgba(4, 28, 20, 0.82)) !important;
+        border: 1px solid rgba(125, 255, 178, 0.28) !important;
+        box-shadow: inset 0 1px 0 rgba(212, 255, 138, 0.12), 0 18px 40px rgba(0, 0, 0, 0.22) !important;
+        position: relative !important;
+        overflow: hidden !important;
+      }
+      .app-header::before {
+        content: "" !important;
+        position: absolute !important;
+        inset: 0 auto 0 0 !important;
+        width: 5px !important;
+        background: linear-gradient(180deg, #d4ff8a, #7dffb2, #6af0e8, #7ec8f0) !important;
+      }
+      .app-header::after {
+        content: "" !important;
+        position: absolute !important;
+        left: 0; right: 0; bottom: 0;
+        height: 3px !important;
+        background: linear-gradient(90deg, #7dffb2, #6af0e8, #7ec8f0, #f0b45a, #f08a6e, #7dffb2) !important;
+        background-size: 200% 100% !important;
+        animation: wow-shimmer 10s linear infinite !important;
+      }
+
+      .nav-cluster {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 0.65rem !important;
+      }
+      .nav-tabs {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 0.25rem !important;
+        padding: 0.32rem !important;
+        border-radius: 1rem !important;
+        background: rgba(3, 24, 17, 0.85) !important;
+        border: 1px solid rgba(125, 255, 178, 0.32) !important;
+      }
+      .nav-tabs > button,
+      .nav-cluster > button,
+      #connection-badge {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        white-space: nowrap !important;
+      }
+
+      .glass-panel,
+      .gradient-border {
+        background: linear-gradient(155deg, rgba(20, 100, 70, 0.78), rgba(5, 30, 22, 0.94)) !important;
+        border: 1px solid rgba(125, 255, 178, 0.3) !important;
+        box-shadow: inset 0 1px 0 rgba(200, 255, 180, 0.14), 0 14px 34px rgba(0, 0, 0, 0.2) !important;
+        backdrop-filter: blur(16px) !important;
+        position: relative !important;
+        overflow: hidden !important;
+      }
+      .glass-panel::before,
+      .gradient-border::before {
+        content: "" !important;
+        position: absolute !important;
+        left: 0; top: 0; bottom: 0;
+        width: 4px !important;
+        background: linear-gradient(180deg, #d4ff8a, #7dffb2, #6af0e8) !important;
+        z-index: 2 !important;
+        pointer-events: none !important;
+      }
+      /* hover rules defined above in Hover animations section */
+
+      /* Video stage cinematic frame */
+      .video-stage {
+        position: relative !important;
+      }
+      .video-stage .stage-toolbar {
+        background: linear-gradient(90deg, rgba(6, 40, 28, 0.95), rgba(8, 28, 40, 0.9)) !important;
+        border-bottom: 1px solid rgba(125, 255, 178, 0.22) !important;
+      }
+      .live-badge {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.4rem !important;
+        padding: 0.2rem 0.55rem !important;
+        border-radius: 0.45rem !important;
+        background: rgba(220, 50, 50, 0.18) !important;
+        border: 1px solid rgba(255, 100, 100, 0.45) !important;
+        color: #ffb4b4 !important;
+        font-size: 0.65rem !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.08em !important;
+      }
+      .live-badge i {
+        color: #ff4d4d !important;
+        animation: wow-live-pulse 1.5s ease-out infinite !important;
+        border-radius: 50% !important;
+      }
+
+      #video-container {
+        position: relative !important;
+        background: #010806 !important;
+      }
+      #video-container .stage-scan {
+        position: absolute !important;
+        left: 0; right: 0;
+        height: 28% !important;
+        background: linear-gradient(180deg, transparent, rgba(125, 255, 178, 0.12), transparent) !important;
+        pointer-events: none !important;
+        z-index: 6 !important;
+        animation: wow-scan 5.5s ease-in-out infinite !important;
+      }
+      .stage-corner {
+        position: absolute !important;
+        width: 22px !important;
+        height: 22px !important;
+        z-index: 7 !important;
+        pointer-events: none !important;
+        border-color: #7dffb2 !important;
+        border-style: solid !important;
+        opacity: 0.85 !important;
+      }
+      .stage-corner.tl { top: 10px; left: 10px; border-width: 2px 0 0 2px; }
+      .stage-corner.tr { top: 10px; right: 10px; border-width: 2px 2px 0 0; }
+      .stage-corner.bl { bottom: 10px; left: 10px; border-width: 0 0 2px 2px; }
+      .stage-corner.br { bottom: 10px; right: 10px; border-width: 0 2px 2px 0; }
+
+      /* Colorful telemetry tiles */
+      .stat-tile { padding-left: 1.1rem !important; }
+      .stat-tile .stat-kicker {
+        display: flex !important;
+        align-items: center !important;
+        gap: 0.4rem !important;
+        font-size: 0.65rem !important;
+        letter-spacing: 0.14em !important;
+        text-transform: uppercase !important;
+        font-weight: 700 !important;
+      }
+      #page-live .telemetry-grid > .gradient-border:nth-child(1) {
+        background: linear-gradient(155deg, rgba(36, 130, 78, 0.9), rgba(8, 40, 28, 0.96)) !important;
+      }
+      #page-live .telemetry-grid > .gradient-border:nth-child(2) {
+        background: linear-gradient(155deg, rgba(130, 90, 18, 0.82), rgba(32, 22, 8, 0.96)) !important;
+      }
+      #page-live .telemetry-grid > .gradient-border:nth-child(3) {
+        background: linear-gradient(155deg, rgba(28, 95, 140, 0.82), rgba(8, 28, 40, 0.96)) !important;
+      }
+      #page-live .telemetry-grid > .gradient-border:nth-child(4) {
+        background: linear-gradient(155deg, rgba(18, 120, 112, 0.82), rgba(8, 36, 34, 0.96)) !important;
+      }
+
+      #device-list-container > .glass-panel {
+        border-radius: 1rem !important;
+        padding: 1rem !important;
+      }
+      #device-list-container > .glass-panel:nth-child(3n + 1) { border-color: rgba(125, 255, 178, 0.45) !important; }
+      #device-list-container > .glass-panel:nth-child(3n + 2) { border-color: rgba(126, 200, 240, 0.45) !important; }
+      #device-list-container > .glass-panel:nth-child(3n) { border-color: rgba(240, 180, 90, 0.45) !important; }
+
+      .device-toggle-btn {
+        box-shadow: 0 0 0 1px rgba(125, 255, 178, 0.08) !important;
+      }
+      .power-ramp-fill {
+        box-shadow: 0 0 12px rgba(125, 255, 178, 0.35) !important;
+      }
+
+      .showcase-footer {
+        margin-top: 1.5rem !important;
+        padding: 0.85rem 1.1rem !important;
+        border-radius: 1rem !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 0.75rem 1.25rem !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        background: linear-gradient(90deg, rgba(12, 70, 50, 0.55), rgba(8, 40, 60, 0.45)) !important;
+        border: 1px solid rgba(125, 255, 178, 0.22) !important;
+        color: #9fd9bd !important;
+        font-size: 0.72rem !important;
+        letter-spacing: 0.04em !important;
+      }
+      .showcase-footer strong {
+        color: #d4ff8a !important;
+        font-family: "Bricolage Grotesque", sans-serif !important;
+      }
+
+      .home-link {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 0.45rem !important;
+        margin-top: 0.55rem !important;
+        padding: 0.4rem 0.75rem !important;
+        border-radius: 0.65rem !important;
+        text-decoration: none !important;
+        font-size: 0.72rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.03em !important;
+        color: #03150f !important;
+        background: linear-gradient(135deg, #7dffb2, #4ecf9a) !important;
+        border: 1px solid rgba(212, 255, 138, 0.55) !important;
+        box-shadow: 0 6px 16px rgba(125, 255, 178, 0.2) !important;
+        transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), filter 0.25s ease, box-shadow 0.25s ease !important;
+      }
+      .home-link:hover {
+        transform: translateY(-2px) scale(1.03) !important;
+        filter: brightness(1.06) !important;
+        box-shadow: 0 10px 22px rgba(125, 255, 178, 0.32) !important;
+        color: #03150f !important;
+      }
+      .home-link i {
+        font-size: 0.7rem !important;
+      }
+
+      .showcase-pills { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+      .showcase-pills span {
+        padding: 0.25rem 0.55rem;
+        border-radius: 0.5rem;
+        border: 1px solid rgba(125, 255, 178, 0.25);
+        background: rgba(3, 24, 17, 0.55);
+        color: #b8f0d0;
+        font-size: 0.65rem;
+        font-weight: 700;
+      }
+
+      #page-live, #page-settings {
+        animation: wow-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      .drawer-overlay { transition: opacity 0.3s ease-in-out; }
+      .drawer-content { transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
       .canvas-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        cursor: crosshair;
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: crosshair;
       }
-      /* Fullscreen Video Feed Styling */
+
       #video-container:fullscreen,
       #video-container:-webkit-full-screen,
       #video-container:-moz-full-screen,
@@ -109,56 +628,86 @@
       #video-container:-webkit-full-screen #video-stream,
       #video-container:-moz-full-screen #video-stream,
       #video-container.video-fullscreen-mode #video-stream {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
+        width: 100%; height: 100%; object-fit: contain;
       }
       #video-container.video-fullscreen-mode {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        z-index: 9999 !important;
+        position: fixed !important; top: 0 !important; left: 0 !important; z-index: 9999 !important;
+      }
+      #video-container.video-fullscreen-mode .stage-scan,
+      #video-container.video-fullscreen-mode .stage-corner,
+      #video-container:fullscreen .stage-scan,
+      #video-container:fullscreen .stage-corner { display: none !important; }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation: none !important;
+          transition-duration: 0.01ms !important;
+        }
       }
     </style>
   </head>
   <body
     class="min-h-screen selection:bg-emerald-500/30 selection:text-emerald-200"
   >
-    <div class="max-w-7xl mx-auto px-6 py-8 space-y-8">
+    <div class="ambient-orb a" aria-hidden="true"></div>
+    <div class="ambient-orb b" aria-hidden="true"></div>
+    <div class="ambient-orb c" aria-hidden="true"></div>
+    <div class="app-shell max-w-7xl mx-auto px-5 sm:px-6 py-7 sm:py-9 space-y-8">
       <!-- Top Navigation & Header Bar -->
-      <header
-        class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-zinc-800/60 pb-6"
-      >
-        <div class="space-y-1">
-          <h1 class="text-3xl text-white flex items-center gap-3">
-            <span
-              class="bg-gradient-to-r from-emerald-400 to-teal-500 bg-clip-text text-transparent"
+      <header class="app-header">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M12 2.5C8.6 7.2 4.5 9.8 4.5 14.6c0 4.2 3.2 7.2 7.5 7.9 4.3-.7 7.5-3.7 7.5-7.9 0-4.8-4.1-7.4-7.5-12.1Z"
+              />
+              <path
+                d="M12 6.2v13.2"
+                stroke="#03150f"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                opacity="0.35"
+              />
+              <path
+                d="M12 10.5c1.6 1.1 2.7 2.6 3.2 4.3"
+                stroke="#03150f"
+                stroke-width="1.3"
+                stroke-linecap="round"
+                opacity="0.28"
+              />
+            </svg>
+          </div>
+          <div>
+            <h1 class="brand-title">Vision Smart Energy</h1>
+            <p class="brand-subtitle">
+              Real-time occupancy intelligence · automated energy savings
+            </p>
+            <a
+              href="/"
+              class="home-link"
             >
-              <i class="fa-solid fa-leaf"></i> Vision Smart Energy v2
-            </span>
-          </h1>
-          <p class="text-zinc-400 text-xs tracking-wide font-light">
-            Real-Time AI Occupancy Detection & Automated Energy Automation
-          </p>
+              <i class="fa-solid fa-house" aria-hidden="true"></i>
+              Back to home page
+            </a>
+          </div>
         </div>
 
-        <!-- 2-Page View Switcher & Action Group -->
-        <div class="flex items-center gap-3 flex-wrap">
+        <!-- 2-Page View Switcher & Action Group (horizontal, like original) -->
+        <div class="nav-cluster flex flex-row flex-wrap items-center justify-end gap-3">
           <!-- Page Tabs -->
-          <div
-            class="bg-zinc-950 p-1 rounded-2xl border border-zinc-800/80 flex items-center gap-1"
-          >
+          <div class="nav-tabs flex flex-row items-center gap-1">
             <button
               id="tab-live"
               onclick="switchPage('live')"
-              class="px-4 py-2 rounded-xl text-xs font-bold transition-all-300 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-md shadow-emerald-500/10 flex items-center gap-2"
+              class="px-4 py-2 rounded-lg text-xs font-bold transition-all-300 bg-emerald-500/25 text-emerald-200 border border-emerald-400/35 flex items-center gap-2 whitespace-nowrap"
             >
               <i class="fa-solid fa-tv"></i> Live Control Center
             </button>
             <button
               id="tab-settings"
               onclick="switchPage('settings')"
-              class="px-4 py-2 rounded-xl text-xs font-semibold transition-all-300 text-zinc-400 hover:text-zinc-200 flex items-center gap-2"
+              class="px-4 py-2 rounded-lg text-xs font-semibold transition-all-300 text-zinc-400 hover:text-zinc-100 flex items-center gap-2 whitespace-nowrap"
             >
               <i class="fa-solid fa-sliders"></i> Settings & Analytics Hub
             </button>
@@ -167,12 +716,12 @@
           <!-- Audit Trail Slide-over Drawer Trigger -->
           <button
             onclick="toggleAuditDrawer(true)"
-            class="px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-sky-300 border border-zinc-800 flex items-center gap-2 transition-all-300"
+            class="px-4 py-2 rounded-lg text-xs font-semibold bg-zinc-950/80 hover:bg-zinc-800 text-sky-300 border border-zinc-800 flex items-center gap-2 transition-all-300 whitespace-nowrap"
           >
             <i class="fa-solid fa-list-check"></i> Audit Logs
             <span
               id="audit-log-badge"
-              class="bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full text-[10px] font-bold"
+              class="bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-md text-[10px] font-bold"
               >0</span
             >
           </button>
@@ -180,10 +729,10 @@
           <!-- Connection Status Badge -->
           <div
             id="connection-badge"
-            class="px-3.5 py-1.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20 flex items-center gap-2 transition-all-300"
+            class="px-3.5 py-1.5 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20 flex items-center gap-2 transition-all-300 whitespace-nowrap shrink-0"
           >
             <span
-              class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"
+              class="w-2 h-2 rounded-sm bg-amber-400 animate-pulse"
             ></span>
             Connecting...
           </div>
@@ -197,14 +746,15 @@
           <!-- Left: Live Spatial Video Feed & Zone Canvas Builder (2 Cols) -->
           <div class="lg:col-span-2 space-y-6">
             <div
-              class="gradient-border rounded-3xl overflow-hidden shadow-2xl transition-all-300 hover-scale"
+              class="gradient-border rounded-2xl overflow-hidden transition-all-300 hover-scale video-stage"
             >
               <div
-                class="px-6 py-4 bg-zinc-900/60 border-b border-zinc-800/60 flex justify-between items-center flex-wrap gap-3"
+                class="stage-toolbar px-6 py-4 border-b border-zinc-800/50 flex justify-between items-center flex-wrap gap-3"
               >
                 <h2
                   class="text-base font-bold text-zinc-100 flex items-center gap-2.5"
                 >
+                  <span class="live-badge"><i class="fa-solid fa-circle text-[7px]"></i> LIVE</span>
                   <i class="fa-solid fa-video text-emerald-400"></i> Live
                   Spatial Video Feed
                 </h2>
@@ -212,14 +762,14 @@
                   <button
                     id="btn-toggle-heatmap"
                     onclick="toggleHeatmap()"
-                    class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition-all-300 flex items-center gap-1.5 cursor-pointer"
+                    class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 border border-amber-500/30 transition-all-300 flex items-center gap-1.5 cursor-pointer"
                   >
                     <i class="fa-solid fa-fire text-amber-400"></i> Heatmap OFF
                   </button>
                   <button
                     id="btn-toggle-fullscreen"
                     onclick="toggleFullscreen()"
-                    class="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 hover:text-white border border-zinc-700/60 transition-all-300 flex items-center gap-1.5 cursor-pointer"
+                    class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 hover:text-white border border-zinc-700/60 transition-all-300 flex items-center gap-1.5 cursor-pointer"
                     title="Maximize to Full Screen"
                   >
                     <i id="icon-fullscreen" class="fa-solid fa-expand text-emerald-400"></i>
@@ -300,6 +850,11 @@
                 id="video-container"
                 style="aspect-ratio: 640/480"
               >
+                <span class="stage-corner tl" aria-hidden="true"></span>
+                <span class="stage-corner tr" aria-hidden="true"></span>
+                <span class="stage-corner bl" aria-hidden="true"></span>
+                <span class="stage-corner br" aria-hidden="true"></span>
+                <div class="stage-scan" aria-hidden="true"></div>
                 <img
                   id="video-stream"
                   src="/api/video_feed"
@@ -312,7 +867,7 @@
                 <button
                   id="btn-overlay-fullscreen"
                   onclick="toggleFullscreen()"
-                  class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all-300 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200 hover:text-white p-2.5 rounded-full border border-zinc-700/60 shadow-lg backdrop-blur-md cursor-pointer z-30 flex items-center justify-center w-9 h-9"
+                  class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all-300 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200 hover:text-white p-2.5 rounded-lg border border-zinc-700/60 cursor-pointer z-30 flex items-center justify-center w-9 h-9"
                   title="Maximize to Full Screen"
                 >
                   <i id="icon-overlay-fullscreen" class="fa-solid fa-expand text-emerald-400 text-sm"></i>
@@ -321,15 +876,13 @@
             </div>
 
             <!-- Telemetry Cards Row -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+            <div class="telemetry-grid grid grid-cols-2 md:grid-cols-4 gap-4">
               <!-- Occupants Card -->
               <div
-                class="gradient-border p-5 rounded-3xl transition-all-300 hover-scale micro-glow-green"
+                class="gradient-border stat-tile p-5 rounded-2xl transition-all-300 hover-scale"
               >
-                <div
-                  class="text-xs text-zinc-500 font-semibold tracking-wider uppercase"
-                >
-                  Occupants
+                <div class="stat-kicker text-emerald-300">
+                  <i class="fa-solid fa-users"></i> Occupants
                 </div>
                 <div
                   id="stat-occupants"
@@ -344,12 +897,10 @@
 
               <!-- Room Status Card -->
               <div
-                class="gradient-border p-5 rounded-3xl transition-all-300 hover-scale micro-glow-amber"
+                class="gradient-border stat-tile p-5 rounded-2xl transition-all-300 hover-scale"
               >
-                <div
-                  class="text-xs text-zinc-500 font-semibold tracking-wider uppercase"
-                >
-                  Room Status
+                <div class="stat-kicker text-amber-300">
+                  <i class="fa-solid fa-door-open"></i> Room Status
                 </div>
                 <div
                   id="stat-status"
@@ -364,12 +915,10 @@
 
               <!-- Empty Duration Card -->
               <div
-                class="gradient-border p-5 rounded-3xl transition-all-300 hover-scale"
+                class="gradient-border stat-tile p-5 rounded-2xl transition-all-300 hover-scale"
               >
-                <div
-                  class="text-xs text-zinc-500 font-semibold tracking-wider uppercase"
-                >
-                  Empty Duration
+                <div class="stat-kicker text-sky-300">
+                  <i class="fa-solid fa-hourglass-half"></i> Empty Duration
                 </div>
                 <div
                   id="stat-empty-dur"
@@ -384,16 +933,14 @@
 
               <!-- Countdowns Card -->
               <div
-                class="gradient-border p-5 rounded-3xl transition-all-300 hover-scale"
+                class="gradient-border stat-tile p-5 rounded-2xl transition-all-300 hover-scale"
               >
-                <div
-                  class="text-xs text-zinc-500 font-semibold tracking-wider uppercase"
-                >
-                  Room Countdown
+                <div class="stat-kicker text-teal-300">
+                  <i class="fa-solid fa-timer"></i> Room Countdown
                 </div>
                 <div
                   id="stat-countdown"
-                  class="text-xl font-black-heading text-purple-400 mt-2"
+                  class="text-xl font-black-heading text-teal-300 mt-2"
                 >
                   5s
                 </div>
@@ -419,7 +966,7 @@
 
           <!-- Right: Virtual Devices & Dynamic Devices (1 Col) -->
           <div class="space-y-6">
-            <div class="gradient-border rounded-3xl p-6 shadow-xl space-y-6">
+            <div class="gradient-border rounded-2xl p-6 space-y-6">
               <div class="flex justify-between items-center">
                 <h2
                   class="text-base font-bold text-zinc-100 flex items-center gap-2.5"
@@ -440,7 +987,7 @@
               <!-- Empty State Notification if zero devices -->
               <div
                 id="zero-device-notice"
-                class="hidden p-6 bg-zinc-950/70 rounded-[32px] border border-dashed border-zinc-800 text-left space-y-5 transition-all-300 shadow-2xl"
+                class="hidden p-6 bg-zinc-950/70 rounded-2xl border border-dashed border-emerald-500/25 text-left space-y-5 transition-all-300"
               >
                 <div class="flex items-center gap-3">
                   <div
@@ -526,7 +1073,7 @@
                 <button
                   id="btn-add-device-bottom"
                   onclick="openDeviceModal()"
-                  class="w-full p-3.5 bg-zinc-950/70 hover:bg-emerald-500/10 text-emerald-300 border border-dashed border-emerald-500/30 hover:border-emerald-500/60 rounded-2xl transition-all-300 flex items-center justify-center gap-2 font-bold text-xs shadow-md group"
+                  class="w-full p-3.5 bg-zinc-950/70 hover:bg-emerald-500/10 text-emerald-300 border border-dashed border-emerald-500/30 hover:border-emerald-500/60 rounded-xl transition-all-300 flex items-center justify-center gap-2 font-bold text-xs group"
                 >
                   <i class="fa-solid fa-plus text-xs group-hover:scale-110 transition-transform"></i> + Add Device
                 </button>
@@ -539,18 +1086,18 @@
       <!-- ================= PAGE 2: SETTINGS & ANALYTICS HUB ================= -->
       <main id="page-settings" class="hidden space-y-8">
         <!-- Energy Savings & Power Telemetry Bento Boxes -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+        <div class="analytics-grid grid grid-cols-2 md:grid-cols-4 gap-4">
           <div
-            class="gradient-border p-5 rounded-3xl transition-all-300 micro-glow-green"
+            class="gradient-border analytics-tile p-5 rounded-2xl transition-all-300 hover-scale"
           >
             <div
-              class="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider"
+              class="text-[11px] text-zinc-400 font-semibold uppercase tracking-[0.14em] analytics-label"
             >
               Live Power Draw
             </div>
             <div
               id="stat-power-draw"
-              class="text-2xl font-black-heading text-emerald-400 mt-1"
+              class="text-2xl font-black-heading text-emerald-400 mt-1 analytics-value"
             >
               0.0 W
             </div>
@@ -558,15 +1105,15 @@
               Baseline: <span id="stat-baseline-power">1305 W</span>
             </div>
           </div>
-          <div class="gradient-border p-5 rounded-3xl transition-all-300">
+          <div class="gradient-border analytics-tile p-5 rounded-2xl transition-all-300 hover-scale">
             <div
-              class="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider"
+              class="text-[11px] text-zinc-400 font-semibold uppercase tracking-[0.14em] analytics-label"
             >
               Cumulative Saved
             </div>
             <div
               id="stat-saved-kwh"
-              class="text-2xl font-black-heading text-sky-400 mt-1"
+              class="text-2xl font-black-heading text-sky-400 mt-1 analytics-value"
             >
               0.0000 kWh
             </div>
@@ -574,15 +1121,15 @@
               CO2 Prevented: <span id="stat-saved-co2">0.00 kg</span>
             </div>
           </div>
-          <div class="gradient-border p-5 rounded-3xl transition-all-300">
+          <div class="gradient-border analytics-tile p-5 rounded-2xl transition-all-300 hover-scale">
             <div
-              class="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider"
+              class="text-[11px] text-zinc-400 font-semibold uppercase tracking-[0.14em] analytics-label"
             >
               Financial Saved ($)
             </div>
             <div
               id="stat-saved-cost"
-              class="text-2xl font-black-heading text-teal-300 mt-1"
+              class="text-2xl font-black-heading text-teal-300 mt-1 analytics-value"
             >
               $0.0000
             </div>
@@ -590,17 +1137,15 @@
               Tariff Rate: $0.15 / kWh
             </div>
           </div>
-          <div
-            class="gradient-border p-5 rounded-3xl transition-all-300 micro-glow-amber"
-          >
+          <div class="gradient-border analytics-tile p-5 rounded-2xl transition-all-300 hover-scale">
             <div
-              class="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider"
+              class="text-[11px] text-zinc-400 font-semibold uppercase tracking-[0.14em] analytics-label"
             >
               Efficiency Gain
             </div>
             <div
               id="stat-efficiency"
-              class="text-2xl font-black-heading text-amber-400 mt-1"
+              class="text-2xl font-black-heading text-amber-400 mt-1 analytics-value"
             >
               0.0%
             </div>
@@ -612,7 +1157,7 @@
         </div>
 
         <!-- 24-Hour Energy Analytics Dashboard & Hourly Chart -->
-        <div class="gradient-border p-6 rounded-[32px] shadow-2xl space-y-6">
+        <div class="gradient-border p-6 rounded-2xl space-y-6">
           <div class="flex justify-between items-center flex-wrap gap-3">
             <div>
               <h2 class="text-base font-black-heading text-zinc-100 flex items-center gap-2.5">
@@ -623,13 +1168,13 @@
             <div class="flex items-center gap-2">
               <button
                 onclick="downloadCSVReport()"
-                class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition-all-300 flex items-center gap-2 cursor-pointer shadow-sm"
+                class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition-all-300 flex items-center gap-2 cursor-pointer"
               >
                 <i class="fa-solid fa-file-csv"></i> Download CSV Report
               </button>
               <button
                 onclick="toggleWeeklyModal(true)"
-                class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 transition-all-300 flex items-center gap-2 cursor-pointer"
+                class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 transition-all-300 flex items-center gap-2 cursor-pointer"
               >
                 <i class="fa-solid fa-calendar-week text-sky-400"></i> 7-Day Trend
               </button>
@@ -679,7 +1224,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <!-- Configuration & Rule Parameters -->
-          <div class="gradient-border rounded-3xl p-6 shadow-xl space-y-6">
+          <div class="gradient-border rounded-2xl p-6 space-y-6">
             <h2
               class="text-lg font-bold text-zinc-100 flex items-center gap-2.5"
             >
@@ -790,7 +1335,7 @@
           <!-- Analytics, Reports & Observability Exports -->
           <div class="space-y-6">
             <!-- Reports & Observability Card -->
-            <div class="gradient-border rounded-3xl p-6 shadow-xl space-y-5">
+            <div class="gradient-border rounded-2xl p-6 space-y-5">
               <h2
                 class="text-lg font-bold text-zinc-100 flex items-center gap-2.5"
               >
@@ -880,7 +1425,7 @@
             </div>
 
             <!-- AI Predictive Occupancy Forecasting Card -->
-            <div class="gradient-border rounded-3xl p-6 shadow-xl space-y-4">
+            <div class="gradient-border rounded-2xl p-6 space-y-4">
               <h2
                 class="text-lg font-bold text-zinc-100 flex items-center gap-2.5"
               >
@@ -922,9 +1467,19 @@
           </div>
         </div>
       </main>
-    </div>
 
-    <!-- Drawing Focus Mode Dimming Backdrop -->
+      <footer class="showcase-footer" aria-label="Project highlights">
+        <div>
+          <strong>Vision Smart Energy</strong> · AI occupancy · spatial zones · automated savings
+        </div>
+        <div class="showcase-pills">
+          <span>YOLOv8 Vision</span>
+          <span>Realtime WebSocket</span>
+          <span>Energy ROI Analytics</span>
+          <span>Privacy-First</span>
+        </div>
+      </footer>
+    </div>
     <div
       id="drawing-focus-backdrop"
       class="fixed inset-0 bg-black/85 backdrop-blur-md z-40 hidden transition-all duration-300"
@@ -1135,16 +1690,16 @@
           liveMain.classList.remove("hidden");
           settingsMain.classList.add("hidden");
           tabLive.className =
-            "px-4 py-2 rounded-xl text-xs font-bold transition-all-300 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-md shadow-emerald-500/10 flex items-center gap-2";
+            "px-4 py-2 rounded-lg text-xs font-bold transition-all-300 bg-emerald-500/25 text-emerald-200 border border-emerald-400/35 flex items-center gap-2 whitespace-nowrap";
           tabSettings.className =
-            "px-4 py-2 rounded-xl text-xs font-semibold transition-all-300 text-zinc-400 hover:text-zinc-200 flex items-center gap-2";
+            "px-4 py-2 rounded-lg text-xs font-semibold transition-all-300 text-zinc-400 hover:text-zinc-100 flex items-center gap-2 whitespace-nowrap";
         } else {
           liveMain.classList.add("hidden");
           settingsMain.classList.remove("hidden");
           tabSettings.className =
-            "px-4 py-2 rounded-xl text-xs font-bold transition-all-300 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-md shadow-emerald-500/10 flex items-center gap-2";
+            "px-4 py-2 rounded-lg text-xs font-bold transition-all-300 bg-emerald-500/25 text-emerald-200 border border-emerald-400/35 flex items-center gap-2 whitespace-nowrap";
           tabLive.className =
-            "px-4 py-2 rounded-xl text-xs font-semibold transition-all-300 text-zinc-400 hover:text-zinc-200 flex items-center gap-2";
+            "px-4 py-2 rounded-lg text-xs font-semibold transition-all-300 text-zinc-400 hover:text-zinc-100 flex items-center gap-2 whitespace-nowrap";
         }
       }
 

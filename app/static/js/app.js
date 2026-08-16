@@ -44,14 +44,14 @@ function updateConnectionBadge(status) {
   if (!badge) return;
 
   if (status === 'CONNECTED') {
-    badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm";
-    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Connected`;
+    badge.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 flex items-center gap-2 transition-all-300 whitespace-nowrap shrink-0";
+    badge.innerHTML = `<span class="w-2 h-2 rounded-sm bg-emerald-400 animate-pulse"></span> Connected`;
   } else if (status === 'CONNECTING') {
-    badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1.5 shadow-sm";
-    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Connecting to room sensor...`;
+    badge.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30 flex items-center gap-2 transition-all-300 whitespace-nowrap shrink-0";
+    badge.innerHTML = `<span class="w-2 h-2 rounded-sm bg-amber-400 animate-pulse"></span> Connecting to room sensor...`;
   } else {
-    badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30 flex items-center gap-1.5 shadow-sm";
-    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span> Connection Lost — Reconnecting...`;
+    badge.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/30 flex items-center gap-2 transition-all-300 whitespace-nowrap shrink-0";
+    badge.innerHTML = `<span class="w-2 h-2 rounded-sm bg-rose-500"></span> Connection Lost — Reconnecting...`;
   }
 }
 
@@ -223,8 +223,8 @@ async function fetchAnalyticsData() {
       const actuals = hourly.map(h => h.kwh_actual);
       const baselines = hourly.map(h => h.kwh_baseline);
 
-      const actualColors = hourly.map(h => h.schedule_active ? 'rgba(16, 185, 129, 0.85)' : 'rgba(161, 161, 170, 0.4)');
-      const baselineColors = hourly.map(h => h.schedule_active ? 'rgba(56, 189, 248, 0.85)' : 'rgba(113, 113, 122, 0.3)');
+      const actualColors = hourly.map(h => h.schedule_active ? 'rgba(125, 224, 187, 0.88)' : 'rgba(84, 120, 105, 0.35)');
+      const baselineColors = hourly.map(h => h.schedule_active ? 'rgba(126, 200, 240, 0.78)' : 'rgba(70, 100, 95, 0.28)');
 
       powerChart.data.datasets[0].data = actuals;
       powerChart.data.datasets[0].backgroundColor = actualColors;
@@ -369,14 +369,14 @@ function initChart() {
         {
           label: 'Actual kWh',
           data: Array(24).fill(0),
-          backgroundColor: 'rgba(16, 185, 129, 0.85)',
+          backgroundColor: 'rgba(125, 224, 187, 0.88)',
           borderRadius: 6,
           borderWidth: 0,
         },
         {
           label: 'Baseline kWh',
           data: Array(24).fill(0),
-          backgroundColor: 'rgba(56, 189, 248, 0.85)',
+          backgroundColor: 'rgba(126, 200, 240, 0.78)',
           borderRadius: 6,
           borderWidth: 0,
         }
@@ -389,25 +389,25 @@ function initChart() {
       scales: {
         x: {
           grid: { display: false },
-          ticks: { color: '#a1a1aa', font: { size: 10 } }
+          ticks: { color: '#8fb5a3', font: { size: 10 } }
         },
         y: {
           beginAtZero: true,
           suggestedMax: 0.005,
-          grid: { color: 'rgba(255,255,255,0.05)' },
+          grid: { color: 'rgba(125, 224, 187, 0.08)' },
           ticks: {
-            color: '#a1a1aa',
+            color: '#8fb5a3',
             font: { size: 10 },
             callback: function(val) {
               if (val < 0.01 && val > 0) return val.toFixed(4);
               return val.toFixed(3);
             }
           },
-          title: { display: true, text: 'Energy (kWh)', color: '#71717a', font: { size: 10 } }
+          title: { display: true, text: 'Energy (kWh)', color: '#74b996', font: { size: 10 } }
         }
       },
       plugins: {
-        legend: { labels: { color: '#f4f4f5', font: { size: 11 } } }
+        legend: { labels: { color: '#eef8f1', font: { size: 11 } } }
       }
     }
   });
