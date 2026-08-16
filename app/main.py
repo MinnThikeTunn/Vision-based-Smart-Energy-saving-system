@@ -43,17 +43,33 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 # ============================================================================
-# Dashboard & Health Endpoints
+# Landing Page & Dashboard UI
 # ============================================================================
 
-@app.get("/", response_class=HTMLResponse)
-def serve_dashboard():
-    """Serve the main dashboard UI."""
-    index_file = STATIC_DIR / "index.html"
-    if index_file.exists():
-        with open(index_file, encoding="utf-8") as f:
+def _read_html(filename: str) -> str:
+    html_file = STATIC_DIR / filename
+    if html_file.exists():
+        with open(html_file, encoding="utf-8") as f:
             return f.read()
-    return "<h1>Vision Smart Energy Saver API Running</h1>"
+    return f"<h1>Missing {filename}</h1>"
+
+
+@app.get("/", response_class=HTMLResponse)
+def serve_landing():
+    """Serve the marketing / project landing page (UI only)."""
+    return _read_html("landing.html")
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def serve_dashboard():
+    """Serve the main control & analytics dashboard UI."""
+    return _read_html("index.html")
+
+
+@app.get("/app", response_class=HTMLResponse)
+def serve_dashboard_alias():
+    """Alias for /dashboard so existing bookmarks keep working."""
+    return _read_html("index.html")
 
 
 @app.get("/health")
